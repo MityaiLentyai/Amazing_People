@@ -1,6 +1,13 @@
 import sys
 from pydantic import BaseModel, Field, model_validator, field_validator
 from enum import IntFlag
+from dataclasses import dataclass
+
+
+@dataclass
+class Point:
+    x: int
+    y: int
 
 
 class Wall(IntFlag):
@@ -12,8 +19,27 @@ class Wall(IntFlag):
     WEST = 8
     ALL = NORTH | EAST | SOUTH | WEST
 
-class Grid():
-    pass
+
+class Grid:
+    def __init__(
+            self,
+            width: int,
+            height: int,
+            start: Point,
+            end: Point,
+            perfect: bool,
+    ):
+        self.width = width
+        self.height = height
+        self.start = start
+        self.end = end
+        self.perfect = perfect
+
+        self.cells = [
+            [Wall.NONE for _ in range(width)]
+            for _ in range(height)
+        ]
+
 
 class Config(BaseModel):
     width: int = Field(ge=1, alias="WIDTH")
@@ -71,6 +97,7 @@ def parse_input(config_name: str):
         config = Config(**config)
         print(
             config.width)  # TODO: Delete this print when parser erroring is done
+
     # Now config is not a dict but a Pydantic Config object.
     # you can access it with print(config.field)
     except FileNotFoundError as e:
@@ -83,3 +110,4 @@ def parse_input(config_name: str):
 
 
 def parse_output():
+    pass
