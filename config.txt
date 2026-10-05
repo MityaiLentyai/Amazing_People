@@ -4,3 +4,7 @@ ENTRY=0,0 # ENTRY Entry coordinates (x,y)
 EXIT=19,14 # EXIT Exit coordinates (x,y)
 OUTPUT_FILE=maze.txt # OUTPUT_FILE Output filename
 PERFECT=True # PERFECT Is the maze perfect?
+#lolkel
+
+
+
