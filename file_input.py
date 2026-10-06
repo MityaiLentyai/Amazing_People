@@ -96,7 +96,7 @@ def parse_input(config_name: str):
                     config.update({key: value})
         config = Config(**config)
         print(
-            config.width)  # TODO: Delete this print when parser erroring is done
+            config)  # TODO: Delete this print when parser erroring is done
 
     # Now config is not a dict but a Pydantic Config object.
     # you can access it with print(config.field)
@@ -109,5 +109,4 @@ def parse_input(config_name: str):
               f"Exiting now xDD")
 
 
-def parse_output():
-    pass
+

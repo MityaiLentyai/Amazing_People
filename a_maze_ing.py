@@ -1,4 +1,5 @@
-from parser import Config, parse_input
+from file_input import Config, parse_input
+from file_output import parse_output
 import sys
 
 
@@ -8,6 +9,8 @@ def main() -> None:
         sys.exit(1)
 
     config = parse_input(sys.argv[1])
+
+    parse_output("output.txt")
 
 
 if __name__ == "__main__":
