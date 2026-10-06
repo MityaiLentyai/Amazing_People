@@ -44,20 +44,17 @@ class Grid:
 class Config(BaseModel):
     width: int = Field(ge=1, alias="WIDTH")
     height: int = Field(ge=1, alias="HEIGHT")
-    entry: tuple[int, int] = Field(alias="ENTRY")
-    exit: tuple[int, int] = Field(alias="EXIT")
+    entry: Point = Field(alias="ENTRY")
+    exit: Point = Field(alias="EXIT")
     output: str = Field(alias="OUTPUT_FILE")
     is_perfect: bool = Field(default=False, alias="PERFECT")
 
     @model_validator(mode="after")
     def entry_validator(self):
-
-        x, y = self.entry
-
-        if not (0 <= x < self.width):
+        if not (0 <= self.entry.x < self.width):
             raise ValueError("Entry point X is outside the maze")
 
-        if not (0 <= y < self.height):
+        if not (0 <= self.entry.y < self.height):
             raise ValueError("Entry point Y is outside the maze")
 
         return self
@@ -65,12 +62,10 @@ class Config(BaseModel):
     @model_validator(mode="after")
     def exit_validator(self):
 
-        x, y = self.exit
-
-        if not (0 <= x < self.width):
+        if not (0 <= self.exit.x < self.width):
             raise ValueError("Exit point X is outside the maze")
 
-        if not (0 <= y < self.height):
+        if not (0 <= self.exit.y < self.height):
             raise ValueError("Exit point Y is outside the maze")
 
         return self
@@ -84,7 +79,7 @@ class Config(BaseModel):
         return value
 
 
-def parse_input(config_name: str):
+def parse_input(config_name: str) -> Config | None:
     config = {}
     try:
         with open(config_name, "r") as file:
@@ -96,17 +91,16 @@ def parse_input(config_name: str):
                     config.update({key: value})
         config = Config(**config)
         print(
-            config)  # TODO: Delete this print when parser erroring is done
+            config)
+        return config
 
     # Now config is not a dict but a Pydantic Config object.
     # you can access it with print(config.field)
     except FileNotFoundError as e:
         print(f"File {config_name} not found, please make sure it exists and "
               f"try again.")
+
     except PermissionError as e:
         print(f"Not enough access rights to either {config_name} or "
               f"{sys.argv[0]}\nPlease update the rights and try again\n"
               f"Exiting now xDD")
-
-
-
