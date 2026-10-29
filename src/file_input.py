@@ -1,45 +1,7 @@
 import sys
-from pydantic import BaseModel, Field, model_validator, field_validator
-from enum import IntFlag
-from dataclasses import dataclass
-
-
-@dataclass
-class Point:
-    x: int
-    y: int
-
-
-class Wall(IntFlag):
-    """Enum for translating wall to bits"""
-    NONE = 0
-    NORTH = 1
-    EAST = 2
-    SOUTH = 4
-    WEST = 8
-    ALL = NORTH | EAST | SOUTH | WEST
-
-
-class Grid:
-    def __init__(
-            self,
-            width: int,
-            height: int,
-            start: Point,
-            end: Point,
-            perfect: bool,
-    ):
-        self.width = width
-        self.height = height
-        self.start = start
-        self.end = end
-        self.perfect = perfect
-
-        self.cells = [
-            [Wall.NONE for _ in range(width)]
-            for _ in range(height)
-        ]
-
+from pydantic import BaseModel, Field, model_validator, field_validator, \
+    ValidationError
+from pydantic_settings import BaseSettings
 
 class Config(BaseModel):
     width: int = Field(ge=1, alias="WIDTH")
@@ -47,7 +9,10 @@ class Config(BaseModel):
     entry: tuple[int, int] = Field(alias="ENTRY")
     exit: tuple[int, int] = Field(alias="EXIT")
     output: str = Field(alias="OUTPUT_FILE")
-    is_perfect: bool = Field(default=False, alias="PERFECT")
+    is_perfect: bool = Field(default=False, alias="PERFECT") # TODO: should it be mandatory present??? Cause if we have default value then pydantic doesn't error it out
+
+    class Settings(BaseSettings):
+        is_perfect: bool = Field(alias="PERFECT")
 
     @model_validator(mode="after")
     def entry_validator(self):
@@ -84,7 +49,7 @@ class Config(BaseModel):
         return value
 
 
-def parse_input(config_name: str):
+def parse_input(config_name: str) -> Config:
     config = {}
     try:
         with open(config_name, "r") as file:
@@ -92,21 +57,27 @@ def parse_input(config_name: str):
                 parsed_line = line.split("#")[0].strip()
                 if "=" in parsed_line:
                     key, value = parsed_line.split("=", 1)
-                    # print(key,value)
+                    # print(key,value) # TODO: delete when done testing
                     config.update({key: value})
         config = Config(**config)
         print(
             config)  # TODO: Delete this print when parser erroring is done
-
+        return config
     # Now config is not a dict but a Pydantic Config object.
     # you can access it with print(config.field)
     except FileNotFoundError as e:
         print(f"File {config_name} not found, please make sure it exists and "
               f"try again.")
+        exit()
     except PermissionError as e:
         print(f"Not enough access rights to either {config_name} or "
               f"{sys.argv[0]}\nPlease update the rights and try again\n"
               f"Exiting now xDD")
+        exit()
+    except ValidationError as e:
+        print(e)
+        exit()
 
-
+if __name__ == "__main__":
+    parse_input(sys.argv[1])
 
