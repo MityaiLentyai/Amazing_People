@@ -55,7 +55,16 @@ def parse_output(config: Config, file_name: str):
     with open(file_name, "w") as file:
         for row in range(current_grid.height):
             for letter in range(current_grid.width):
-                file.write(format(int(current_grid.cells[row][letter]), "X"))
+                file.write(format(int(current_grid.cells[row][letter]), "X")) # ne eboo shto eto, no poka srabotalo
             file.write("\n")
 
-    # TODO: BLANK LINE, FOOTER, SHORTEST PATH
+        file.write("\n")
+
+        file.write(str(config.entry).strip("()"))
+        file.write("         # entry  (x,y)\n")
+
+        file.write(str(config.exit).strip("()"))
+        file.write("         # exit  (x,y)\n")
+
+        file.write("\n")
+        file.write("SHORTEST PATH WILL GO HERE")    # TODO: SHORTEST PATH
