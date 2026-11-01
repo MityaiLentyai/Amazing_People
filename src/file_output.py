@@ -60,11 +60,9 @@ def parse_output(config: Config, file_name: str):
 
         file.write("\n")
 
-        file.write(str(config.entry).strip("()"))
-        file.write("         # entry  (x,y)\n")
+        file.write(f"{start.x},{start.y}\n")
 
-        file.write(str(config.exit).strip("()"))
-        file.write("         # exit  (x,y)\n")
+        file.write(f"{end.x},{end.y}\n")
 
         file.write("\n")
         file.write("SHORTEST PATH WILL GO HERE")    # TODO: SHORTEST PATH

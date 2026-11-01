@@ -4,11 +4,9 @@ Doing amazing things
 ## Setup with uv
 Install [uv](https://docs.astral.sh/uv/) if needed, then from the project root run `uv sync` to create `.venv` and install dependencies from `uv.lock` (Python 3.14 is pinned via `.python-version`). 
 
-Useful evaluation commands:
+Useful commands:
 * `uv sync` (recreate / refresh the env)
-* `uv run python a_maze_ing.py config.txt` (subject-style entry; also works as `python3 a_maze_ing.py config.txt` after `source .venv/bin/activate`)
-* `uv run a-maze-ing config.txt` (same app via the installed script)
-* `uv run a-maze-ing` / `python3 a_maze_ing.py` (prints usage and exits)
+* `uv run a-maze-ing config.txt` 
 
 ## File structure
 ```text

@@ -9,7 +9,7 @@ def main() -> None:
 
     config = parse_input(sys.argv[1])
 
-    parse_output(config, "output.txt")
+    parse_output(config, config.output)
 
 if __name__ == "__main__":
     main()
