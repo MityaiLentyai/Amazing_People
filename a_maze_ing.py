@@ -3,19 +3,14 @@ from src.file_output import parse_output
 import sys
 
 def main() -> None:
+    if len(sys.argv) != 2:
+        print("Usage: python3 a_maze_ing.py config.txt\nExiting now XD")
+        sys.exit(1)
 
-    def main() -> None:
-        if len(sys.argv) != 2:
-            print("Usage: python3 a_maze_ing.py config.txt\nExiting now XD")
-            sys.exit(1)
+    config = parse_input(sys.argv[1])
 
-        config = parse_input(sys.argv[1])
-
-        parse_output(config, "output.txt")
-
-    if __name__ == "__main__":
-        main()
-
+    parse_output(config, "output.txt")
 
 if __name__ == "__main__":
     main()
+
