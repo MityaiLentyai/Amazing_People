@@ -2,22 +2,14 @@ from .file_input import Config
 from .maze_generator import Point, Grid
 
 
-def parse_output(config: Config, file_name: str):
+def parse_output(config: Config, shortest_path, maze : Grid):
     start = Point(*config.entry)
     end = Point(*config.exit)
-    current_grid = Grid(
-        config.width,
-        config.height,
-        start,
-        end,
-        config.is_perfect
-    )
-
-    # TODO: REPLACE F's With a real maze that we will get
+    file_name = config.output
     with open(file_name, "w") as file:
-        for row in range(current_grid.height):
-            for letter in range(current_grid.width):
-                file.write(format(int(current_grid.cells[row][letter]), "X"))
+        for row in maze.cells:
+            for cell in row:
+                file.write(format(int(cell), "X"))
             file.write("\n")
 
         file.write("\n")
@@ -26,5 +18,4 @@ def parse_output(config: Config, file_name: str):
 
         file.write(f"{end.x},{end.y}\n")
 
-        file.write("\n")
-        file.write("SHORTEST PATH WILL GO HERE")  # TODO: SHORTEST PATH
+        file.write("".join(shortest_path))
