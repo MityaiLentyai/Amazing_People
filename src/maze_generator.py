@@ -1,3 +1,4 @@
+from collections import deque
 from dataclasses import dataclass
 from enum import IntFlag
 import random
@@ -72,11 +73,11 @@ class MazeGenerator:
             self.grid.cells[point1.y][point1.x] &= ~Wall.WEST
             self.grid.cells[point2.y][point2.x] &= ~Wall.EAST
         elif point2.x == point1.x and point2.y == point1.y + 1:
-            self.grid.cells[point1.y][point1.x] &= ~Wall.NORTH
-            self.grid.cells[point2.y][point2.x] &= ~Wall.SOUTH
-        elif point2.x == point1.x and point2.y + 1 == point1.y:
             self.grid.cells[point1.y][point1.x] &= ~Wall.SOUTH
             self.grid.cells[point2.y][point2.x] &= ~Wall.NORTH
+        elif point2.x == point1.x and point2.y + 1 == point1.y:
+            self.grid.cells[point1.y][point1.x] &= ~Wall.NORTH
+            self.grid.cells[point2.y][point2.x] &= ~Wall.SOUTH
 
     def generate(self):
         self.visited.add(self.grid.start)
@@ -97,6 +98,67 @@ class MazeGenerator:
     #     return len(self.visited) == self.grid.width * self.grid.height
 
 
+class BFS:
+    def __init__(self, grid: Grid):
+        self.grid = grid
+
+    def get_accessible_neighbors(self, point: Point) -> list[Point]:
+        neighbours = []
+        if not self.grid.cells[point.y][point.x] & Wall.NORTH and point.y > 0:
+            neighbours.append(Point(x=point.x, y=point.y - 1))
+        if not self.grid.cells[point.y][
+                   point.x] & Wall.EAST and point.x < self.grid.width - 1:
+            neighbours.append(Point(x=point.x + 1, y=point.y))
+        if not self.grid.cells[point.y][point.x] & Wall.WEST and point.x > 0:
+            neighbours.append(Point(x=point.x - 1, y=point.y))
+        if not self.grid.cells[point.y][
+                   point.x] & Wall.SOUTH and point.y < self.grid.height - 1:
+            neighbours.append(Point(x=point.x, y=point.y + 1))
+        return neighbours
+
+    def reconstruct_path(self, parent: dict[Point, Point | None]) -> list[
+        Point]:
+        path = [self.grid.end]
+        current = self.grid.end
+        while parent[current] is not None:
+            path.append(parent[current])
+            current = parent[current]
+        path.reverse()
+        return path
+
+    def find_path(self):
+        visited = set()
+        queue = deque()
+        queue.append(self.grid.start)
+        visited.add(self.grid.start)
+        parent = {self.grid.start: None}
+        while queue:
+            current = queue.popleft()
+            if current == self.grid.end:
+                return self.reconstruct_path(parent)
+            neigbours = self.get_accessible_neighbors(current)
+            for n in neigbours:
+                if n not in visited:
+                    visited.add(n)
+                    queue.append(n)
+                    parent[n] = current
+
+        return None
+
+    def get_direction(self, path : list[Point]):
+        result = []
+        for i in range(len(path) - 1):
+            if path[i].x > path[i + 1].x:
+                result.append('W')
+            elif path[i].x < path[i + 1].x:
+                result.append('E')
+            elif path[i].y > path[i + 1].y:
+                result.append('N')
+            elif path[i].y < path[i + 1].y:
+                result.append('S')
+
+        return result
+
 def generate_maze(config: Config):
     grid = Grid(
         width=config.width,
@@ -108,5 +170,9 @@ def generate_maze(config: Config):
 
     maze = MazeGenerator(grid)
     maze.generate()
+    #Tests potom udalit nahuy
     print(f"{len(maze.visited) == maze.grid.width * maze.grid.height}")
+    pathfinder = BFS(grid)
+    path = pathfinder.find_path()
+    print(path)
     return grid
