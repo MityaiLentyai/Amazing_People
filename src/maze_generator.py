@@ -93,6 +93,86 @@ class MazeGenerator:
                 self.stack.append(rand)
                 self.open_walls(current, rand)
 
+        if not self.grid.perfect:
+            self.remove_dead_ends()
+            self.add_extra_passages()
+
+    def count_open_neighbors(self, point: Point) -> int:
+        count = 0
+        cell = self.grid.cells[point.y][point.x]
+        if not (cell & Wall.NORTH):
+            count += 1
+        if not (cell & Wall.SOUTH):
+            count += 1
+        if not (cell & Wall.EAST):
+            count += 1
+        if not (cell & Wall.WEST):
+            count += 1
+        return count
+
+    def get_closed_neighbors(self, point: Point):
+        neighbours = self.get_neighbors(point)
+        closed = []
+        cell = self.grid.cells[point.y][point.x]
+        for neighbour in neighbours:
+            if neighbour.x == point.x + 1:
+                if cell & Wall.EAST and self.grid.cells[neighbour.y][
+                    neighbour.x] & Wall.WEST:
+                    closed.append(neighbour)
+
+            if neighbour.x + 1 == point.x:
+                if cell & Wall.WEST and self.grid.cells[neighbour.y][
+                    neighbour.x] & Wall.EAST:
+                    closed.append(neighbour)
+
+            if neighbour.y == point.y + 1:
+                if cell & Wall.SOUTH and self.grid.cells[neighbour.y][
+                    neighbour.x] & Wall.NORTH:
+                    closed.append(neighbour)
+
+            if neighbour.y + 1 == point.y:
+                if cell & Wall.NORTH and self.grid.cells[neighbour.y][
+                    neighbour.x] & Wall.SOUTH:
+                    closed.append(neighbour)
+        return closed
+
+    def remove_dead_ends(self) -> None:
+        for y in range(self.grid.height):
+            for x in range(self.grid.width):
+                tmp = Point(x, y)
+                neibs_count = self.count_open_neighbors(tmp)
+                if neibs_count == 1:
+                    possibilities = self.get_closed_neighbors(tmp)
+                    if possibilities:
+                        r = random.choice(possibilities)
+                        self.open_walls(tmp, r)
+
+    def add_extra_passages(self) -> None:
+        is_option = True
+        while self.count_loops() < 2 and is_option:
+            is_option = False
+            for y in range(self.grid.height):
+                for x in range(self.grid.width):
+                    tmp = Point(x, y)
+                    possibilities = self.get_closed_neighbors(tmp)
+                    if possibilities:
+                        r = random.choice(possibilities)
+                        self.open_walls(tmp, r)
+                        if self.count_loops() >= 2:
+                            return
+                        is_option = True
+                        break
+                if is_option:
+                    break
+
+    def count_loops(self):
+        v = self.grid.width * self.grid.height
+        e = 0
+        for y in range(self.grid.height):
+            for x in range(self.grid.width):
+                e += self.count_open_neighbors(Point(x, y))
+        return e // 2 - v + 1
+
 
 class BFS:
     def __init__(self, grid: Grid):
@@ -168,8 +248,8 @@ def generate_maze(config: Config):
     maze = MazeGenerator(grid)
     maze.generate()
     # Tests potom udalit nahuy
-    print(f"{len(maze.visited) == maze.grid.width * maze.grid.height}")
-    pathfinder = BFS(grid)
-    path = pathfinder.find_path()
-    print(path)
+    # print(f"{len(maze.visited) == maze.grid.width * maze.grid.height}")
+    # pathfinder = BFS(grid)
+    # path = pathfinder.find_path()
+    # print(path)
     return grid
