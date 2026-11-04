@@ -44,8 +44,9 @@ class Grid:
 
 
 class MazeGenerator:
-    def __init__(self, grid: Grid):
+    def __init__(self, grid: Grid, seed: int | None = None):
         self.grid = grid
+        self.rng = random.Random(seed)
         self.visited = set()
         self.stack = []
 
@@ -88,7 +89,7 @@ class MazeGenerator:
             if not neigbours:
                 self.stack.pop()
             else:
-                rand = random.choice(neigbours)
+                rand = self.rng.choice(neigbours)
                 self.visited.add(rand)
                 self.stack.append(rand)
                 self.open_walls(current, rand)
@@ -145,7 +146,7 @@ class MazeGenerator:
                 if neibs_count == 1:
                     possibilities = self.get_closed_neighbors(tmp)
                     if possibilities:
-                        r = random.choice(possibilities)
+                        r = self.rng.choice(possibilities)
                         self.open_walls(tmp, r)
 
     def add_extra_passages(self) -> None:
@@ -157,7 +158,7 @@ class MazeGenerator:
                     tmp = Point(x, y)
                     possibilities = self.get_closed_neighbors(tmp)
                     if possibilities:
-                        r = random.choice(possibilities)
+                        r = self.rng.choice(possibilities)
                         self.open_walls(tmp, r)
                         if self.count_loops() >= 2:
                             return
@@ -188,7 +189,7 @@ class MazeGenerator:
             while self.count_open_neighbors(c) < 2:
                 open_neibs = self.get_closed_neighbors(c)
                 if open_neibs:
-                    r = random.choice(open_neibs)
+                    r = self.rng.choice(open_neibs)
                     self.open_walls(c, r)
                 else:
                     break
@@ -265,7 +266,7 @@ def generate_maze(config: Config):
         perfect=config.is_perfect,
     )
 
-    maze = MazeGenerator(grid)
+    maze = MazeGenerator(grid, seed=config.seed)
     maze.generate()
     # Tests potom udalit nahuy
     # print(f"{len(maze.visited) == maze.grid.width * maze.grid.height}")

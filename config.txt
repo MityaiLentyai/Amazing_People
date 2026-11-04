@@ -4,7 +4,6 @@ ENTRY=0,0 # ENTRY Entry coordinates (x,y)
 EXIT=2,2 # EXIT Exit coordinates (x,y)
 OUTPUT_FILE=maze.txt # OUTPUT_FILE Output filename
 PERFECT=True # PERFECT Is the maze perfect?
+SEED=43 # разный сид разные мейзы
 #lolkel
-
-
 

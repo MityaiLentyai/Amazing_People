@@ -10,6 +10,7 @@ class Config(BaseModel):
     exit: tuple[int, int] = Field(alias="EXIT")
     output: str = Field(alias="OUTPUT_FILE")
     is_perfect: bool = Field(default=False, alias="PERFECT") # TODO: should it be mandatory present??? Cause if we have default value then pydantic doesn't error it out
+    seed: int | None = Field(default=None, alias="SEED")
 
     class Settings(BaseSettings):
         is_perfect: bool = Field(alias="PERFECT")
