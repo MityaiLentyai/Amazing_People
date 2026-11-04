@@ -92,10 +92,6 @@ class MazeGenerator:
                 self.visited.add(rand)
                 self.stack.append(rand)
                 self.open_walls(current, rand)
-    #
-    # @staticmethod
-    # def t(self):
-    #     return len(self.visited) == self.grid.width * self.grid.height
 
 
 class BFS:
@@ -145,7 +141,7 @@ class BFS:
 
         return None
 
-    def get_direction(self, path : list[Point]):
+    def get_direction(self, path: list[Point]):
         result = []
         for i in range(len(path) - 1):
             if path[i].x > path[i + 1].x:
@@ -159,6 +155,7 @@ class BFS:
 
         return result
 
+
 def generate_maze(config: Config):
     grid = Grid(
         width=config.width,
@@ -170,7 +167,7 @@ def generate_maze(config: Config):
 
     maze = MazeGenerator(grid)
     maze.generate()
-    #Tests potom udalit nahuy
+    # Tests potom udalit nahuy
     print(f"{len(maze.visited) == maze.grid.width * maze.grid.height}")
     pathfinder = BFS(grid)
     path = pathfinder.find_path()

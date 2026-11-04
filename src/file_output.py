@@ -1,11 +1,9 @@
-from .file_input import Config
-from .maze_generator import Point, Grid
+from .maze_generator import Grid
 
 
-def parse_output(config: Config, shortest_path, maze : Grid):
-    start = Point(*config.entry)
-    end = Point(*config.exit)
-    file_name = config.output
+def parse_output(file_name: str, shortest_path, maze: Grid):
+    start = maze.start
+    end = maze.end
     with open(file_name, "w") as file:
         for row in maze.cells:
             for cell in row:
@@ -18,4 +16,5 @@ def parse_output(config: Config, shortest_path, maze : Grid):
 
         file.write(f"{end.x},{end.y}\n")
 
-        file.write("".join(shortest_path))
+        if shortest_path is not None:
+            file.write("".join(shortest_path))
