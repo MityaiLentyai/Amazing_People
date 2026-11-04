@@ -95,6 +95,7 @@ class MazeGenerator:
 
         if not self.grid.perfect:
             self.remove_dead_ends()
+            self.check_corners_center()
             self.add_extra_passages()
 
     def count_open_neighbors(self, point: Point) -> int:
@@ -172,6 +173,25 @@ class MazeGenerator:
             for x in range(self.grid.width):
                 e += self.count_open_neighbors(Point(x, y))
         return e // 2 - v + 1
+
+    # TODO ну тут вот центр как-то ебануть и красиво будет
+    # def get_center_cells(self):
+    def check_corners_center(self):
+        corners = (
+            Point(0, 0),
+            Point(self.grid.width - 1, 0),
+            Point(0, self.grid.height - 1),
+            Point(self.grid.width - 1, self.grid.height - 1)
+        )
+        center = Point(self.grid.width // 2, self.grid.height // 2)  # todo
+        for c in [center, *corners]:
+            while self.count_open_neighbors(c) < 2:
+                open_neibs = self.get_closed_neighbors(c)
+                if open_neibs:
+                    r = random.choice(open_neibs)
+                    self.open_walls(c, r)
+                else:
+                    break
 
 
 class BFS:
