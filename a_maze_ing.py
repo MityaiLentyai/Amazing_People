@@ -14,8 +14,12 @@ def main() -> None:
     maze = generate_maze(config)
 
     bfs = BFS(maze)
-    shortest_p = bfs.get_direction(bfs.find_path())
-    parse_output(config, shortest_p, maze)
+    path = bfs.find_path()
+    if path:
+        shortest_p = bfs.get_direction(path)
+        parse_output(config.output, shortest_p, maze)
+    else:
+        print("Error, no path")
 
 
 if __name__ == "__main__":
