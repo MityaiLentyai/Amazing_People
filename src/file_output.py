@@ -1,43 +1,5 @@
-from enum import IntFlag
-from file_input import Config
-from dataclasses import dataclass
-
-
-@dataclass(frozen=True)  # to be able to put it into sets later
-class Point:
-    x: int
-    y: int
-
-
-class Wall(IntFlag):
-    """Enum for translating wall to bits"""
-    NONE = 0
-    NORTH = 1
-    EAST = 2
-    SOUTH = 4
-    WEST = 8
-    ALL = NORTH | EAST | SOUTH | WEST
-
-
-class Grid:
-    def __init__(
-            self,
-            width: int,
-            height: int,
-            start: Point,
-            end: Point,
-            perfect: bool,
-    ):
-        self.width = width
-        self.height = height
-        self.start = start
-        self.end = end
-        self.perfect = perfect
-
-        self.cells = [
-            [Wall.ALL for _ in range(width)]
-            for _ in range(height)
-        ]
+from .file_input import Config
+from .maze_generator import Point, Grid
 
 
 def parse_output(config: Config, file_name: str):
@@ -65,4 +27,4 @@ def parse_output(config: Config, file_name: str):
         file.write(f"{end.x},{end.y}\n")
 
         file.write("\n")
-        file.write("SHORTEST PATH WILL GO HERE")    # TODO: SHORTEST PATH
+        file.write("SHORTEST PATH WILL GO HERE")  # TODO: SHORTEST PATH

@@ -1,6 +1,8 @@
 from src.file_input import parse_input
 from src.file_output import parse_output
 import sys
+from src.maze_generator import generate_maze
+
 
 def main() -> None:
     if len(sys.argv) != 2:
@@ -11,6 +13,7 @@ def main() -> None:
 
     parse_output(config, config.output)
 
+    maze = generate_maze(config)
+
 if __name__ == "__main__":
     main()
-
