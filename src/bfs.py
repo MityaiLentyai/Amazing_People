@@ -1,6 +1,6 @@
 from collections import deque
 
-from .maze_generator import Grid, Point, Wall
+from .maze_generator import Grid, Point
 
 
 class BFS:
@@ -8,18 +8,7 @@ class BFS:
         self.grid = grid
 
     def get_accessible_neighbors(self, point: Point) -> list[Point]:
-        neighbours = []
-        if not self.grid.cells[point.y][point.x] & Wall.NORTH and point.y > 0:
-            neighbours.append(Point(x=point.x, y=point.y - 1))
-        if not self.grid.cells[point.y][
-                   point.x] & Wall.EAST and point.x < self.grid.width - 1:
-            neighbours.append(Point(x=point.x + 1, y=point.y))
-        if not self.grid.cells[point.y][point.x] & Wall.WEST and point.x > 0:
-            neighbours.append(Point(x=point.x - 1, y=point.y))
-        if not self.grid.cells[point.y][
-                   point.x] & Wall.SOUTH and point.y < self.grid.height - 1:
-            neighbours.append(Point(x=point.x, y=point.y + 1))
-        return neighbours
+        return self.grid.get_open_playable_neighbors(point)
 
     def reconstruct_path(self, parent: dict[Point, Point | None]) -> list[
         Point]:
@@ -32,6 +21,11 @@ class BFS:
         return path
 
     def find_path(self):
+        if not self.grid.is_playable(self.grid.start) or not self.grid.is_playable(
+            self.grid.end
+        ):
+            return None
+
         visited = set()
         queue = deque()
         queue.append(self.grid.start)

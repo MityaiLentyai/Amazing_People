@@ -1,6 +1,7 @@
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from enum import IntFlag
+from importlib import import_module
 
 from .file_input import Config
 
@@ -153,6 +154,17 @@ def generate_maze(config: Config):
         end=Point(x=config.exit[0], y=config.exit[1]),
         perfect=config.is_perfect,
     )
+
+    glyph_42 = import_module(".42", package=__package__)
+    glyph_cells = glyph_42.get_42_cells(
+        grid.width,
+        grid.height,
+        grid.start,
+        grid.end,
+        grid.perfect,
+    )
+    if glyph_cells is not None:
+        grid.reserve_cells(glyph_cells)
 
     from .dfs import MazeGenerator
 
