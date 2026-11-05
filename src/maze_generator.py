@@ -46,21 +46,86 @@ def cells_from_bitmap(
 
 
 def pattern_42_origin(width: int, height: int) -> Point:
-    """Может уйти в минус если мейз маловат"""
     return Point(
         (width - PATTERN_42_WIDTH) // 2,
         (height - PATTERN_42_HEIGHT) // 2,
     )
 
 
+def pattern_42_candidate_origins(width: int, height: int) -> list[Point]:
+    """
+    Тут квадрат 7х5 который нужен для нашей 42, его резервируем под дальнейший
+    движ
+    """
+    max_x = width - PATTERN_42_WIDTH
+    max_y = height - PATTERN_42_HEIGHT
+    mid_x = max_x // 2
+    mid_y = max_y // 2
+
+    candidates = [
+        Point(mid_x, mid_y),
+        Point(0, mid_y),
+        Point(max_x, mid_y),
+        Point(mid_x, 0),
+        Point(mid_x, max_y),
+        Point(0, 0),
+        Point(max_x, 0),
+        Point(0, max_y),
+        Point(max_x, max_y),
+    ]
+
+    seen: set[Point] = set()
+    unique: list[Point] = []
+    for origin in candidates:
+        if origin not in seen:
+            seen.add(origin)
+            unique.append(origin)
+    return unique
+
+
 def pattern_42_cells(origin: Point) -> set[Point]:
-    """Собираем четвёрку и двойку в сетик поинтов посерёдке"""
     four = cells_from_bitmap(DIGIT_FOUR, origin)
     two = cells_from_bitmap(
         DIGIT_TWO,
         Point(origin.x + len(DIGIT_FOUR[0]) + DIGIT_GAP, origin.y),
     )
     return four | two
+
+
+def get_42_cells(
+        width: int,
+        height: int,
+        start: Point | None = None,
+        end: Point | None = None,
+) -> set[Point] | None:
+    if width < PATTERN_42_WIDTH or height < PATTERN_42_HEIGHT:
+        print(
+            f"Maze {width}x{height} is too small for the '42' pattern "
+            f"(needs at least {PATTERN_42_WIDTH}x{PATTERN_42_HEIGHT}); "
+            f"omitting it."
+        )
+        return None
+
+    # Стараемся сдвинуть 42 если вход/выход на них. Если не вышло то скипуем 42
+    forbidden = {p for p in (start, end) if p is not None}
+    preferred = pattern_42_origin(width, height)
+
+    for origin in pattern_42_candidate_origins(width, height):
+        cells = pattern_42_cells(origin)
+        if cells & forbidden:
+            continue
+        if origin != preferred:
+            print(
+                f"'42' pattern shifted to ({origin.x},{origin.y}) "
+                f"to keep entry/exit free."
+            )
+        return cells
+
+    print(
+        "Cannot place the '42' pattern without covering entry/exit; "
+        "omitting it."
+    )
+    return None
 
 
 class Wall(IntFlag):
