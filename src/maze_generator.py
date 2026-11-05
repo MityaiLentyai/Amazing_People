@@ -5,11 +5,62 @@ import random
 
 from .file_input import Config
 
+# Можно потом подкрутить чтобы оно красивее было, либо если баговать будет на определённых размерах
+DIGIT_FOUR: tuple[tuple[int, ...], ...] = (
+    (1, 0, 1),
+    (1, 0, 1),
+    (1, 1, 1),
+    (0, 0, 1),
+    (0, 0, 1),
+)
+
+DIGIT_TWO: tuple[tuple[int, ...], ...] = (
+    (1, 1, 1),
+    (0, 0, 1),
+    (1, 1, 1),
+    (1, 0, 0),
+    (1, 1, 1),
+)
+
+DIGIT_GAP = 1  # Типа энв вариабла которую можно подкрутить в зависимости от размера мейза/Экрана
+PATTERN_42_WIDTH = len(DIGIT_FOUR[0]) + DIGIT_GAP + len(DIGIT_TWO[0])
+PATTERN_42_HEIGHT = len(DIGIT_FOUR)
+
 
 @dataclass(frozen=True)  # to be able to put it into sets later
 class Point:
     x: int
     y: int
+
+
+def cells_from_bitmap(
+        bitmap: tuple[tuple[int, ...], ...],
+        origin: Point,
+) -> set[Point]:
+    cells: set[Point] = set()
+    for dy, row in enumerate(bitmap):
+        for dx, bit in enumerate(row):
+            if bit:
+                cells.add(Point(origin.x + dx, origin.y + dy))
+    return cells
+
+
+def pattern_42_origin(width: int, height: int) -> Point:
+    """Может уйти в минус если мейз маловат"""
+    return Point(
+        (width - PATTERN_42_WIDTH) // 2,
+        (height - PATTERN_42_HEIGHT) // 2,
+    )
+
+
+def pattern_42_cells(origin: Point) -> set[Point]:
+    """Собираем четвёрку и двойку в сетик поинтов посерёдке"""
+    four = cells_from_bitmap(DIGIT_FOUR, origin)
+    two = cells_from_bitmap(
+        DIGIT_TWO,
+        Point(origin.x + len(DIGIT_FOUR[0]) + DIGIT_GAP, origin.y),
+    )
+    return four | two
 
 
 class Wall(IntFlag):
