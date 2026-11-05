@@ -1,7 +1,6 @@
 import sys
 from pydantic import BaseModel, Field, model_validator, field_validator, \
     ValidationError
-from pydantic_settings import BaseSettings
 
 class Config(BaseModel):
     width: int = Field(ge=1, alias="WIDTH")
@@ -11,9 +10,6 @@ class Config(BaseModel):
     output: str = Field(alias="OUTPUT_FILE")
     is_perfect: bool = Field(default=False, alias="PERFECT") # TODO: should it be mandatory present??? Cause if we have default value then pydantic doesn't error it out
     seed: int | None = Field(default=None, alias="SEED")
-
-    class Settings(BaseSettings):
-        is_perfect: bool = Field(alias="PERFECT")
 
     @model_validator(mode="after")
     def entry_validator(self):
