@@ -1,7 +1,8 @@
 from src.file_input import parse_input
 from src.file_output import parse_output
 import sys
-from src.maze_generator import generate_maze, BFS
+from src.bfs import BFS
+from src.maze_generator import generate_maze
 
 
 def main() -> None:
