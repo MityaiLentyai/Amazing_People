@@ -11,6 +11,29 @@ def main() -> None:
         sys.exit(1)
 
     config = parse_input(sys.argv[1])
+    # from importlib import import_module # TODO: tester for 42, delete afterr
+    # from src.maze_generator import Point
+    #
+    # glyph_42 = import_module("src.42")
+    #
+    # cells = glyph_42.get_42_cells(
+    #     config.width,
+    #     config.height,
+    #     Point(*config.entry),
+    #     Point(*config.exit),
+    #     config.is_perfect,
+    # )
+    #
+    # print("42 cells:", cells)
+    # if cells is not None:
+    #     print(
+    #         "All normal cells connected:",
+    #         glyph_42.playable_cells_are_connected(
+    #             config.width,
+    #             config.height,
+    #             cells,
+    #         ),
+    #     )
 
     maze = generate_maze(config)
 

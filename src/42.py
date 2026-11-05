@@ -1,3 +1,5 @@
+from collections import deque
+
 from .maze_generator import Point
 
 
@@ -20,6 +22,7 @@ DIGIT_TWO: tuple[tuple[int, ...], ...] = (
 DIGIT_GAP = 1
 PATTERN_42_WIDTH = len(DIGIT_FOUR[0]) + DIGIT_GAP + len(DIGIT_TWO[0])
 PATTERN_42_HEIGHT = len(DIGIT_FOUR)
+CARDINAL_STEPS = ((0, -1), (1, 0), (0, 1), (-1, 0)) # maybe hyinya, hz kak eshe
 
 
 def cells_from_bitmap(
@@ -42,7 +45,6 @@ def pattern_42_origin(width: int, height: int) -> Point:
 
 
 def pattern_42_candidate_origins(width: int, height: int) -> list[Point]:
-    """Return every fitting origin, ordered from the maze centre outward."""
     max_x = width - PATTERN_42_WIDTH
     max_y = height - PATTERN_42_HEIGHT
     if max_x < 0 or max_y < 0:
@@ -73,7 +75,6 @@ def pattern_42_cells(origin: Point) -> set[Point]:
 
 
 def non_perfect_key_cells(width: int, height: int) -> set[Point]:
-    """Cells that must remain corridors for Pac-Man-like mazes."""
     return {
         Point(0, 0),
         Point(width - 1, 0),
@@ -83,6 +84,40 @@ def non_perfect_key_cells(width: int, height: int) -> set[Point]:
     }
 
 
+def playable_cells_are_connected(
+    width: int,
+    height: int,
+    reserved_cells: set[Point],
+) -> bool:
+    playable_count = width * height - len(reserved_cells)
+    if playable_count <= 0:
+        return False
+
+    start = next(
+        Point(x, y)
+        for y in range(height)
+        for x in range(width)
+        if Point(x, y) not in reserved_cells
+    )
+    visited = {start}
+    queue = deque([start])
+
+    while queue:
+        point = queue.popleft()
+        for dx, dy in CARDINAL_STEPS:
+            neighbor = Point(point.x + dx, point.y + dy)
+            if (
+                0 <= neighbor.x < width
+                and 0 <= neighbor.y < height
+                and neighbor not in reserved_cells
+                and neighbor not in visited
+            ):
+                visited.add(neighbor)
+                queue.append(neighbor)
+
+    return len(visited) == playable_count
+
+
 def get_42_cells(
     width: int,
     height: int,
@@ -90,7 +125,6 @@ def get_42_cells(
     end: Point | None = None,
     perfect: bool = True,
 ) -> set[Point] | None:
-    """Choose a placement that does not cover required corridor cells."""
     if width < PATTERN_42_WIDTH or height < PATTERN_42_HEIGHT:
         print(
             f"Maze {width}x{height} is too small for the '42' pattern "
@@ -106,7 +140,9 @@ def get_42_cells(
     preferred = pattern_42_origin(width, height)
     for origin in pattern_42_candidate_origins(width, height):
         cells = pattern_42_cells(origin)
-        if cells & forbidden:
+        if cells & forbidden or not playable_cells_are_connected(
+            width, height, cells
+        ):
             continue
         if origin != preferred:
             print(
@@ -116,7 +152,8 @@ def get_42_cells(
         return cells
 
     print(
-        "Cannot place the '42' pattern without covering required cells; "
+        "Cannot place the '42' pattern without covering required cells or "
+        "disconnecting playable cells; "
         "omitting it."
     )
     return None
