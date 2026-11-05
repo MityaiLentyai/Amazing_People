@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import IntFlag
 
@@ -34,6 +35,57 @@ class Grid:
         self.end = end
         self.perfect = perfect
         self.cells = [[Wall.ALL for _ in range(width)] for _ in range(height)]
+        self.reserved_cells: set[Point] = set()
+
+    def is_inside(self, point: Point) -> bool:
+        return 0 <= point.x < self.width and 0 <= point.y < self.height
+
+    def is_playable(self, point: Point) -> bool:
+        return self.is_inside(point) and point not in self.reserved_cells
+
+    def get_playable_neighbors(self, point: Point) -> list[Point]:
+        if not self.is_playable(point):
+            return []
+
+        neighbors = (
+            Point(point.x - 1, point.y),
+            Point(point.x + 1, point.y),
+            Point(point.x, point.y - 1),
+            Point(point.x, point.y + 1),
+        )
+        return [neighbor for neighbor in neighbors if self.is_playable(neighbor)]
+
+    def reserve_cells(self, points: Iterable[Point]) -> None:
+        cells = set(points)
+        if any(not self.is_inside(point) for point in cells):
+            raise ValueError("Reserved cells must be inside the grid")
+        if self.start in cells or self.end in cells:
+            raise ValueError("Entry and exit cells cannot be reserved")
+
+        self.reserved_cells.update(cells)
+        for point in cells:
+            self.cells[point.y][point.x] = Wall.ALL
+
+    def open_passage(self, point1: Point, point2: Point) -> bool:
+        """Open a shared wall between adjacent playable cells."""
+        if not self.is_playable(point1) or not self.is_playable(point2):
+            return False
+
+        directions = {
+            (0, -1): (Wall.NORTH, Wall.SOUTH),
+            (1, 0): (Wall.EAST, Wall.WEST),
+            (0, 1): (Wall.SOUTH, Wall.NORTH),
+            (-1, 0): (Wall.WEST, Wall.EAST),
+        }
+        direction = (point2.x - point1.x, point2.y - point1.y)
+        walls = directions.get(direction)
+        if walls is None:
+            return False
+
+        wall1, wall2 = walls
+        self.cells[point1.y][point1.x] &= ~wall1
+        self.cells[point2.y][point2.x] &= ~wall2
+        return True
 
 # Можно потом подкрутить чтобы оно красивее было, либо если баговать будет на определённых размерах
 DIGIT_FOUR: tuple[tuple[int, ...], ...] = (
