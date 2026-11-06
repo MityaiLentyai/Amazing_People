@@ -6,7 +6,8 @@ readme = "README.md"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dependencies = [
-    "pydantic>=2.13.5",
+    "mlx",
+    "pydantic==2.14.3",
 ]
 
 [build-system]
@@ -16,3 +17,6 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-name = "src"
 module-root = ""
+
+[tool.uv.sources]
+mlx = { path = "libs/mlx-2.2-py3-none-any.whl" }

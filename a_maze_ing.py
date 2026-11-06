@@ -3,7 +3,7 @@ from src.file_output import parse_output
 import sys
 from src.bfs import BFS
 from src.maze_generator import generate_maze
-
+from src.visualizer import MazeRenderer
 
 def main() -> None:
     if len(sys.argv) != 2:
@@ -42,6 +42,8 @@ def main() -> None:
     if path:
         shortest_p = bfs.get_direction(path)
         parse_output(config.output, shortest_p, maze)
+        render = MazeRenderer(maze)
+        render.run()
     else:
         print("Error, no path")
 
