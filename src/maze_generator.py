@@ -146,7 +146,10 @@ class Grid:
         return True
 
 
-def generate_maze(config: Config):
+def generate_maze(
+    config: Config,
+    generation_steps: list[tuple[Point, Point]] | None = None,
+):
     grid = Grid(
         width=config.width,
         height=config.height,
@@ -168,11 +171,8 @@ def generate_maze(config: Config):
 
     from .dfs import MazeGenerator
 
-    maze = MazeGenerator(grid, seed=config.seed)
+    maze = MazeGenerator(
+        grid, seed=config.seed, generation_steps=generation_steps
+    )
     maze.generate()
-    # Tests potom udalit nahuy
-    # print(f"{len(maze.visited) == maze.grid.width * maze.grid.height}")
-    # pathfinder = BFS(grid)
-    # path = pathfinder.find_path()
-    # print(path)
     return grid

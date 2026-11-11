@@ -4,11 +4,23 @@ from .maze_generator import Grid, Point
 
 
 class MazeGenerator:
-    def __init__(self, grid: Grid, seed: int | None = None):
+    def __init__(
+        self,
+        grid: Grid,
+        seed: int | None = None,
+        generation_steps: list[tuple[Point, Point]] | None = None,
+    ):
         self.grid = grid
         self.rng = random.Random(seed)
         self.visited = set()
         self.stack = []
+        self.generation_steps = generation_steps
+
+    def open_passage(self, point1: Point, point2: Point) -> None:
+        was_open = self.grid.is_open_passage(point1, point2)
+        if self.grid.open_passage(point1, point2) and not was_open:
+            if self.generation_steps is not None:
+                self.generation_steps.append((point1, point2))
 
     def get_unvisited_neighbors(self, point: Point) -> list[Point]:
         return [
@@ -29,7 +41,7 @@ class MazeGenerator:
                 rand = self.rng.choice(neigbours)
                 self.visited.add(rand)
                 self.stack.append(rand)
-                self.grid.open_passage(current, rand)
+                self.open_passage(current, rand)
 
         if len(self.visited) != self.grid.playable_cell_count:
             raise ValueError("Playable maze cells are disconnected")
@@ -47,7 +59,7 @@ class MazeGenerator:
             if self.count_open_neighbors(point) == 1:
                 possibilities = self.grid.get_closed_playable_neighbors(point)
                 if possibilities:
-                    self.grid.open_passage(point, self.rng.choice(possibilities))
+                    self.open_passage(point, self.rng.choice(possibilities))
 
     def add_extra_passages(self) -> None:
         is_option = True
@@ -56,7 +68,7 @@ class MazeGenerator:
             for point in self.grid.iter_playable_cells():
                 possibilities = self.grid.get_closed_playable_neighbors(point)
                 if possibilities:
-                    self.grid.open_passage(point, self.rng.choice(possibilities))
+                    self.open_passage(point, self.rng.choice(possibilities))
                     if self.count_loops() >= 2:
                         return
                     is_option = True
@@ -87,6 +99,6 @@ class MazeGenerator:
                 open_neibs = self.grid.get_closed_playable_neighbors(c)
                 if open_neibs:
                     r = self.rng.choice(open_neibs)
-                    self.grid.open_passage(c, r)
+                    self.open_passage(c, r)
                 else:
                     break
