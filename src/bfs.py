@@ -1,6 +1,6 @@
 from collections import deque
 
-from .maze_generator import Grid, Point
+from Mazegen.maze_generator import Grid, Point
 
 
 class BFS:

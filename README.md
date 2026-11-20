@@ -127,7 +127,7 @@ the animation completes when path display is enabled.
 
 ## Algorithm choice
 
-`src/dfs.py` implements an iterative depth-first backtracker: it starts at the
+`src/Mazegen` implements an iterative depth-first backtracker: it starts at the
 entry, chooses an unvisited playable neighbor, opens the shared wall, and
 backtracks when no unvisited neighbor remains. This is a compact way to visit
 every connected playable cell and, before non-perfect post-processing, carve
@@ -151,7 +151,7 @@ convert it to the output's direction letters:
 ```python
 from src.bfs import BFS
 from src.file_input import Config
-from src.maze_generator import generate_maze
+from Mazegen.maze_generator import generate_maze
 
 config = Config(
     WIDTH=20,
@@ -254,7 +254,7 @@ generation-step recording and animation, project documentation.
   explicitly reject matching coordinates.
 - A `42` pattern needs at least a 7-by-5 grid and can still be omitted if no
   placement preserves the required cells and connectivity.
-- The current project uses DFS; `src/primm.py` is not connected to the active
+- The current project uses DFS; `src/Mazegen` is not connected to the active
   generation flow. The project root does not currently include the subject's
   requested Makefile, so use the `uv` commands above.
 - A graphical smoke test requires a Linux MiniLibX display. Headless unit tests

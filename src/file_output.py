@@ -1,4 +1,4 @@
-from .maze_generator import Grid
+from Mazegen.maze_generator import Grid
 
 
 def parse_output(file_name: str, shortest_path, maze: Grid):

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import IntFlag
 from importlib import import_module
 
-from .file_input import Config
+from file_input import Config
 
 
 @dataclass(frozen=True)
@@ -169,7 +169,7 @@ def generate_maze(
     if glyph_cells is not None:
         grid.reserve_cells(glyph_cells)
 
-    from .dfs import MazeGenerator
+    from Mazegen.dfs import MazeGenerator
 
     maze = MazeGenerator(
         grid, seed=config.seed, generation_steps=generation_steps
