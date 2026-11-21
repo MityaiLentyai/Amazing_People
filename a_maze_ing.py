@@ -5,7 +5,7 @@ from collections.abc import Callable
 from src.bfs import BFS
 from src.file_input import Config, parse_input
 from src.file_output import parse_output
-from src.maze_generator import Grid, Point, generate_maze
+from Mazegen.maze_generator import Grid, Point, generate_maze
 from src.visualizer import MazeRenderer
 
 

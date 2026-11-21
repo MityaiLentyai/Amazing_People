@@ -1,6 +1,6 @@
 from collections import deque
 
-from .maze_generator import Point
+from Mazegen.maze_generator import Point
 
 
 DIGIT_FOUR: tuple[tuple[int, ...], ...] = (

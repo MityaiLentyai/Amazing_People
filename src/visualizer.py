@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Any, Protocol
 
 from mlx import Mlx
-from src.maze_generator import Grid, Point, Wall
+from Mazegen.maze_generator import Grid, Point, Wall
 
 
 class MlxApi(Protocol):

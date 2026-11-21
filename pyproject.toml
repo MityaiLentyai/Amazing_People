@@ -7,7 +7,7 @@ requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dependencies = [
     "mlx",
-    "pydantic==2.14.3",
+    "pydantic==2.14.4",
 ]
 
 [build-system]
@@ -19,4 +19,4 @@ module-name = "src"
 module-root = ""
 
 [tool.uv.sources]
-mlx = { path = "libs/mlx-2.2-py3-none-any.whl" }
+mlx = { path = "mlx-2.2/ubuntu/mlx-2.2-py3-none-any.whl" }

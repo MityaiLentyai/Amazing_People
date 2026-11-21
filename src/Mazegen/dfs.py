@@ -1,6 +1,6 @@
 import random
 
-from .maze_generator import Grid, Point
+from maze_generator import Grid, Point
 
 
 class MazeGenerator:
