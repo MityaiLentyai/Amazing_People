@@ -4,163 +4,229 @@
 
 ## Description
 
-A-Maze-ing is a Python maze generator and visualizer based on the 42 A-Maze-ing
-subject (version 2.3). It reads maze dimensions, entry and exit coordinates,
-generation mode, and an optional random seed from a configuration file. It
-generates the maze, finds a shortest route from entry to exit, writes the maze
-and route to a text file, and displays an animated graphical representation.
+A-Maze-ing is a Python maze generator, solver and MiniLibX visualizer. The
+application reads one configuration file, generates a connected maze, writes
+it in the hexadecimal format required by the 42 subject, finds a shortest
+route between the entry and exit, and displays the result.
 
-The implementation uses a depth-first search (DFS) backtracker to carve
-connected passages. In perfect mode the carved playable cells form a spanning
-tree; in non-perfect mode the generator opens additional passages to create
-loops and tries to reduce dead ends. A closed-cell `42` pattern is placed when
-the grid can accommodate it without blocking the entry, exit, or connectivity.
+The project supports both subject modes:
+
+- **Perfect maze** (`PERFECT=True`): the playable cells form a spanning tree,
+  so there is exactly one route between any two playable cells.
+- **Playable board** (`PERFECT=False`): additional passages create loops,
+  corners and the centre remain reachable, and dead ends are reduced so the
+  result can be used as a Pac-Man-like board.
+
+The generator also reserves a fully closed `42` pattern whenever the grid is
+large enough and a valid placement is possible. Small grids may not contain
+the pattern; the program reports that situation instead of producing an
+invalid placement.
 
 ## Features
 
-- Seeded generation for repeatable mazes.
-- Perfect and non-perfect generation modes.
-- A reserved, fully walled `42` pattern when the dimensions and layout allow it.
-- Breadth-first search (BFS) to find a shortest path from entry to exit.
-- Text output containing hexadecimal wall flags, coordinates, and path directions.
-- MiniLibX display with animated passage carving, entry/exit markers, and a
-  shortest-path overlay.
-- A clean visualizer footer with keyboard-only controls.
-- Fixed visualizer window dimensions and persistent keyboard legend.
-- Live DFS/Prim algorithm selection while the visualizer is running.
-- Keyboard controls for algorithm selection, path visibility, wall colors,
-  regeneration, and exit.
-- `src/maze_analyzer.py` to inspect output-file wall consistency, connectivity,
-  loops, and dead ends.
+- Deterministic generation with an optional integer seed.
+- Two generation algorithms: iterative depth-first search (DFS) and randomized
+  Prim.
+- Perfect and non-perfect maze modes.
+- Validation of dimensions, coordinates, required configuration keys and
+  algorithm names.
+- Breadth-first search (BFS) for a shortest entry-to-exit path.
+- Subject-compliant hexadecimal wall encoding and solution footer.
+- MiniLibX rendering with visible walls, entry, exit, solution and `42`
+  pattern.
+- Animated replay of the passages opened during generation.
+- Runtime controls for regeneration, algorithm selection, path visibility,
+  wall colours and quitting.
+- `maze_analyzer.py` for checking wall coherence, connectivity, loops and
+  dead ends.
+- A standalone `mazegen` package that can be built and reused independently.
 
 ## Requirements
 
-- Python 3.10 or later, as required by the subject. This repository pins Python
-  3.14 in `.python-version`.
-- `uv` for the setup commands below; dependencies and the local MiniLibX wheel
-  are declared in `pyproject.toml` and locked in `uv.lock`.
-- A Linux graphical environment with a display supported by MiniLibX to run the
-  visualizer. The bundled MiniLibX library uses `libmlx.so`, so the graphical
-  application is not supported by this bundle on native Windows. WSL users need
-  a working graphical display/forwarding setup.
+- Python 3.10 or newer.
+- `uv` (recommended) or an equivalent Python package workflow.
+- A Linux graphical environment with MiniLibX support to run the visualizer.
+  The bundled `libmlx.so` wheel is not supported by native Windows. On WSL,
+  configure a working X11/Wayland display before launching the application.
+
+The project is type-checked with mypy and follows flake8 rules.
 
 ## Instructions
 
-Run the following commands from the repository root. Install `uv` first if it
-is not already available:
+Run all commands from the repository root.
+
+### Install
 
 ```sh
 uv sync
+```
+
+This installs the project dependencies, including Pydantic for configuration
+validation and the bundled MiniLibX wheel for development and display.
+
+### Run the application
+
+The required command-line interface accepts exactly one argument:
+
+```sh
 uv run python a_maze_ing.py config.txt
 ```
 
-The equivalent command in an environment where dependencies are already
-installed is:
+With an already prepared environment, the equivalent command is:
 
 ```sh
 python3 a_maze_ing.py config.txt
 ```
 
-The program accepts exactly one command-line argument: the configuration file
-path. It writes the maze to the path in `OUTPUT_FILE`; relative paths are
-resolved from the current working directory. Running the program opens the
-visualizer after generation and writing the initial maze.
+The application validates the configuration, generates and writes the maze,
+then opens the visualizer. Invalid arguments, missing files, malformed values,
+impossible coordinates and runtime resource errors are reported as readable
+messages and return a non-zero status.
 
-### Configuration file
+Run the static checks used during development:
 
-The repository includes `config.txt` as the default configuration. Use one
-`KEY=VALUE` pair per line; lines beginning with `#` and trailing `#` comments
-are ignored. Coordinates are zero-based `(x,y)` pairs. The parser accepts
-coordinates written as `x,y`. The subject requires `WIDTH`, `HEIGHT`, `ENTRY`,
-`EXIT`, `OUTPUT_FILE`, and `PERFECT`; `PERFECT` is now mandatory and must be
-`True` or `False`. `SEED` is an optional project-specific setting.
+```sh
+uv run flake8 .
+uv run mypy . --warn-return-any --warn-unused-ignores \
+  --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+```
 
-| Key | Meaning | Example / default |
-| --- | --- | --- |
-| `WIDTH` | Number of cells horizontally; must be at least 1. | `WIDTH=10` |
-| `HEIGHT` | Number of cells vertically; must be at least 1. | `HEIGHT=10` |
-| `ENTRY` | Entry cell as `x,y`, within the grid. | `ENTRY=0,0` |
-| `EXIT` | Exit cell as `x,y`, within the grid. | `EXIT=6,8` |
-| `OUTPUT_FILE` | Destination for the generated maze and solution. | `OUTPUT_FILE=maze.txt` |
-| `PERFECT` | Generate a perfect maze when `True`; required. | `PERFECT=True` |
-| `ALGORITHM` | Generation algorithm: depth-first search (`dfs`) or randomized Prim (`prim`); defaults to `dfs`. | `ALGORITHM=dfs` |
-| `SEED` | Optional integer seed for repeatable generation. | `SEED=43` |
+### Build the reusable package
+
+Build a wheel at the repository root:
+
+```sh
+uv build --wheel -o .
+```
+
+The resulting `mazegen-*.whl` can be installed into another environment:
+
+```sh
+python3 -m pip install mazegen-*.whl
+```
+
+## Configuration file
+
+The repository includes `config.txt`. Use one `KEY=VALUE` pair per line.
+Lines beginning with `#` and trailing `#` comments are ignored. Keys are
+case-sensitive. Coordinates are zero-based and use the `x,y` format.
+
+| Key | Required | Meaning | Example |
+| --- | --- | --- | --- |
+| `WIDTH` | Yes | Number of cells horizontally; must be at least `1`. | `WIDTH=20` |
+| `HEIGHT` | Yes | Number of cells vertically; must be at least `1`. | `HEIGHT=10` |
+| `ENTRY` | Yes | Entry cell `(x,y)`, inside the grid. | `ENTRY=0,0` |
+| `EXIT` | Yes | Exit cell `(x,y)`, inside the grid and different from entry. | `EXIT=19,8` |
+| `OUTPUT_FILE` | Yes | File receiving the generated maze. | `OUTPUT_FILE=maze.txt` |
+| `PERFECT` | Yes | `True` for a perfect maze, `False` for a playable board. | `PERFECT=False` |
+| `ALGORITHM` | No | `dfs` or `prim`; defaults to `dfs`. | `ALGORITHM=dfs` |
+| `SEED` | No | Integer used for reproducible random choices. | `SEED=1` |
 
 Example:
 
 ```text
-WIDTH=10
+WIDTH=20
 HEIGHT=10
 ENTRY=0,0
-EXIT=6,8
+EXIT=19,8
 OUTPUT_FILE=maze.txt
-PERFECT=True
+PERFECT=False
 ALGORITHM=dfs
-SEED=43
+SEED=1
 ```
 
-For reproducible output, keep the same configuration and seed. If `SEED` is
-omitted, Python's random generator chooses an unseeded sequence. Pressing `R`
-uses a fresh seed for the new maze; it saves that
-maze and its solution to the same output path, but does not rewrite the
-configuration file with the new seed.
+If `SEED` is omitted, generation is non-deterministic. Pressing `R` generates
+a new maze with an unused seed and writes the new output to the same path; it
+does not modify the configuration file.
 
-### Maze output format
+## Maze and output requirements
 
-The output contains one uppercase hexadecimal digit for each cell, one row per
-line. Each digit stores the closed-wall flags: bit 0 is North, bit 1 East, bit
-2 South, and bit 3 West. A set bit means the wall is closed; a cleared bit
-means the passage is open. For example, `A` (`1010` in binary) means the East
-and West walls are closed.
+The generator enforces the requirements from `amazeing.pdf`:
 
-After the rows, the file has a blank line followed by the entry coordinates,
-exit coordinates, and shortest path on separate lines. The path consists of
-`N`, `E`, `S`, and `W` direction letters. For example, the supplied `maze.txt`
-uses this format.
+- every cell has four coherent cardinal wall flags;
+- external borders remain closed;
+- entry and exit are distinct, valid cells connected to the playable region;
+- all non-reserved playable cells are connected;
+- no open area is wider than the subject's allowed `3 x 2` / `2 x 3`
+  corridors;
+- the `42` pattern consists of fully closed cells where placement is possible;
+- perfect mode has no loops;
+- non-perfect mode has at least two independent routes, reachable corners and
+  centre, and only a small number of real dead ends.
 
-### Visualizer controls
+`src/maze_analyzer.py` can inspect a generated file:
 
-Passage openings are replayed as an animation. The path overlay appears after
-the animation completes when path display is enabled.
+```sh
+uv run python src/maze_analyzer.py maze.txt
+```
 
-| Input | Action |
+For the no-dead-end bonus check, use:
+
+```sh
+uv run python src/maze_analyzer.py maze.txt --max-dead-ends 0
+```
+
+## Output format
+
+The output file contains:
+
+1. One uppercase hexadecimal digit for every cell, one row per line.
+2. One empty line.
+3. The entry coordinates.
+4. The exit coordinates.
+5. The shortest path as `N`, `E`, `S` and `W`.
+
+Every line ends with `\n`. A wall bit set to `1` means that the wall is
+closed:
+
+| Bit | Direction |
 | --- | --- |
-| `1` or `D` | Switch to depth-first search (DFS) and regenerate. |
-| `2` or `A` | Switch to randomized Prim or cycle to the next algorithm. |
-| `R` | Generate another maze and update the output file. |
-| `P` | Toggle the shortest-path overlay. |
-| Press `C` | Cycle through wall colors. |
-| Press `Q` or `Escape` | Close the visualizer. |
+| `0` (least significant) | North |
+| `1` | East |
+| `2` | South |
+| `3` | West |
+
+For example, `A` is binary `1010`, so its east and west walls are closed.
+
+## Visualizer controls
+
+The visualizer first replays the generation animation and then displays the
+shortest path when path display is enabled.
+
+| Key | Action |
+| --- | --- |
+| `1` or `D` | Select DFS and regenerate. |
+| `2` or `A` | Select randomized Prim and regenerate. |
+| `R` | Generate and save another maze. |
+| `P` | Show or hide the shortest path. |
+| `C` | Cycle wall colours. |
+| `Q` or `Escape` | Close the window. |
 
 ## Algorithm choice
 
-`ALGORITHM=dfs` selects the iterative depth-first backtracker: it starts at the
-entry, chooses an unvisited playable neighbor, opens the shared wall, and
-backtracks when no unvisited neighbor remains. `ALGORITHM=prim` selects the
-randomized Prim generator, which grows the maze from a frontier of adjacent
-unvisited cells. Both algorithms visit every connected playable cell and carve
-a spanning tree before non-perfect post-processing. The optional seed makes
-the same choices reproducible.
+The default algorithm is the iterative DFS backtracker. Starting at the entry,
+it chooses an unvisited playable neighbour, opens the shared wall, and
+backtracks when no unvisited neighbour remains. This naturally produces a
+connected spanning tree, making it a good fit for `PERFECT=True`: it is simple,
+memory-efficient and guarantees one route between cells before any optional
+post-processing.
 
-For `PERFECT=True`, the spanning-tree passages remain the generated maze. For
-`PERFECT=False`, post-processing opens more passages, aims to keep the four
-corners and center usable, reduces dead ends, and adds at least two independent
-loops when the available cells permit it. The implementation uses BFS in
-`src/mazegen/solver.py` because each grid move has equal cost; BFS returns a shortest
-route in number of cell-to-cell moves.
+Randomized Prim is provided as an alternative. It grows the maze from a
+frontier of neighbouring cells and generally produces a different visual
+distribution while preserving the same connectivity guarantees. The seed
+controls all random choices, so both algorithms are reproducible.
 
-## Reusing the generator
+For non-perfect mode, post-processing opens carefully selected passages to
+create independent loops while preserving connectivity, the `42` pattern and
+the corridor-width constraint. BFS is used to solve the maze because every
+cell-to-cell move has the same cost; therefore the first route found by BFS is
+shortest.
 
-The maze generator is a standalone Python library with no runtime dependencies.
-Build the wheel with `uv build --wheel -o .`, then install it in the
-project or another Python environment:
+## Reusable `mazegen` package
 
-```sh
-python -m pip install mazegen-*.whl
-```
-
-Then create a maze directly, without the application's configuration parser,
-file output, or MiniLibX visualizer:
+The reusable library is in `src/mazegen/` and is exposed by the
+`mazegen-*.whl` package. Its public entry point is `MazeGenerator`; it does not
+depend on the application configuration parser, file writer or visualizer.
 
 ```python
 from mazegen import MazeGenerator
@@ -175,100 +241,89 @@ maze = MazeGenerator(
     algorithm="dfs",
 )
 grid = maze.generate()
-print("Shortest path:", "".join(maze.directions))
-print("Path cells:", maze.path)
-print("Wall flags at (0, 0):", grid.cells[0][0])
-print("Hex rows:", maze.to_hex_rows())
 
-# Create a new maze with a seed not used by this instance.
-grid = maze.regenerate()
-print("New seed:", maze.seed)
+print(grid.cells)          # generated wall grid
+print(maze.path)           # shortest route as Point objects
+print(maze.directions)     # route as N/E/S/W
+print(maze.to_hex_rows())  # subject-compatible rows
+
+maze.regenerate(seed=44)
 ```
 
-`width` and `height` are positive cell counts; `entry` and `exit` accept
-`(x, y)` tuples or `Point` objects and must be inside the grid. Set `perfect`
-to `False` for additional loops, pass an integer `seed` for repeatable output,
-and choose `"dfs"` or `"prim"` with `algorithm`.
+`width` and `height` must be positive. `entry` and `exit` may be `(x, y)`
+tuples or `Point` objects and must be different and inside the grid.
+`algorithm` is either `"dfs"` or `"prim"`. The returned `Grid` exposes
+`cells`, `start`, `end`, `reserved_cells`, `is_open_passage()` and
+`iter_playable_cells()`. `MazeGenerator.solve()` recalculates the cached
+solution; `regenerate()` creates a new grid and solution.
 
-`generate()` returns a `Grid`. Inspect `grid.cells` for `Wall` flags,
-`grid.start`/`grid.end` for endpoints, and `grid.reserved_cells` for the
-optional `42` pattern. The generator stores the shortest route in `maze.path`
-and its `N`/`E`/`S`/`W` directions in `maze.directions`; call `maze.solve()` to
-recompute the route. `maze.regenerate()` changes the seed to a new unused value
-and updates the grid, route, directions, and `generation_steps`. The
-`ALGORITHMS` constant lists supported choices. `maze.to_hex_rows()` returns the
-maze in the project's hexadecimal wall-flag format.
-
-To build the wheel from the repository root, run:
-
-```sh
-uv build --wheel -o .
-```
+Short package-specific documentation is also available in
+[`src/mazegen/README.md`](src/mazegen/README.md).
 
 ## Project structure
 
 ```text
 .
-├── a_maze_ing.py                 # Required command-line entry point
-├── amazeing.pdf                  # A-Maze-ing subject, version 2.3
-├── config.txt                    # Default generation configuration
-├── maze.txt                      # Example generated output
-├── LICENSE.md                    # MIT license
-├── .gitignore                    # Python/build artifacts and IDE files
-├── .python-version               # Python 3.14 project pin
-├── pyproject.toml                # Project and build configuration
-├── uv.lock                       # Locked dependency versions
+├── a_maze_ing.py              # Required application entry point
+├── amazeing.pdf               # A-Maze-ing subject, version 2.3
+├── config.txt                 # Default configuration
+├── maze.txt                   # Example output
+├── mazegen-*.whl              # Reusable package artifact
+├── LICENSE.md                 # MIT license
+├── pyproject.toml             # Dependencies and build configuration
+├── uv.lock                    # Locked dependency versions
 ├── src/
-│   ├── mazegen/                  # Reusable maze library
-│   │   ├── dfs.py                # Depth-first generation engine
-│   │   ├── maze_generator.py     # Public API and grid model
-│   │   ├── pattern_42.py         # Reserved-cell pattern placement
-│   │   ├── primm.py              # Prim generation engine
-│   │   └── solver.py             # Breadth-first shortest-path search
-│   ├── file_input.py             # Configuration parsing and validation
-│   ├── file_output.py            # Maze and solution serialization
-│   ├── maze_analyzer.py          # Output-file analysis utility
-│   └── visualizer.py             # MiniLibX renderer and interactions
+│   ├── mazegen/               # Reusable generation library
+│   │   ├── maze_generator.py  # Public API and grid model
+│   │   ├── dfs.py             # DFS generator
+│   │   ├── primm.py           # Prim generator
+│   │   ├── pattern_42.py      # 42 placement
+│   │   ├── post_processing.py # Non-perfect maze processing
+│   │   └── solver.py          # BFS shortest-path solver
+│   ├── file_input.py          # Configuration parser and validation
+│   ├── file_output.py         # Output serialization
+│   ├── maze_analyzer.py       # Output validation utility
+│   └── visualizer.py          # MiniLibX renderer and controls
 ```
 
 ## Team and project management
 
-- **bdubovik:** visualization, BFS, DFS, and the standalone module.
-- **tmalyshi:** Prim's algorithm, input, output, and the `42` pattern.
-- **Initial plan:** build a maze generator with MiniLibX visualization.
-- **Plan changes:** the initial plan did not change.
-- **Retrospective:** maze generation worked well; next time, we would
-  choose a different visualization method.
-- **Tools:** PyCharm, VS Code, `uv`, Git, and GitHub.
+- **bdubovik:** visualization, BFS solving, DFS generation and reusable
+  package integration.
+- **tmalyshi:** Prim generation, configuration input, output serialization and
+  `42` pattern processing.
+
+The initial plan was to implement a compliant generator, add a MiniLibX
+display, and package the generation logic for reuse. During implementation,
+the plan was extended with a second generation algorithm, animated generation,
+seed-based regeneration and `maze_analyzer.py` so that perfect and playable
+requirements could be checked quantitatively.
+
+The separation between generation, solving, serialization and rendering worked
+well and made the package reusable. A future improvement would be to use a platform-neutral display backend or
+provide a terminal renderer so the application is easier to use outside Linux.
+
+Development tools included PyCharm, VS Code, `uv`, Git, GitHub, MiniLibX,
+Pydantic, flake8 and mypy.
 
 ## Resources and AI use
 
-- [A-Maze-ing subject (version 2.3)](amazeing.pdf) — requirements for the
-  generator, output format, visualization, reusable package, and README.
-- [MiniLibX getting started](https://harm-smits.github.io/42docs/libs/minilibx/getting_started.html)
-  — windowing, image, and event-loop reference.
+- [`amazeing.pdf`](amazeing.pdf) — official A-Maze-ing subject, version 2.3.
 - [Python `collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque)
   — queue used by BFS.
 - [Python `random`](https://docs.python.org/3/library/random.html) — seeded
-  random choices for generation.
-- [Pydantic documentation](https://docs.pydantic.dev/) — configuration model
-  and validation library.
+  random generation.
+- [MiniLibX documentation](https://harm-smits.github.io/42docs/libs/minilibx/getting_started.html)
+  — windows, images and event hooks.
+- [Pydantic documentation](https://docs.pydantic.dev/) — configuration
+  validation.
 
-AI assistance was used to help develop the MiniLibX maze visualization,
-generation-step recording and animation, project documentation.
-
-## Current implementation notes
-
-- The configuration parser requires `PERFECT`, validates that entry and exit
-  are distinct and inside the grid, and supports optional `ALGORITHM` and
-  `SEED` keys.
-- A `42` pattern needs at least a 7-by-5 grid and can still be omitted if no
-  placement preserves the required cells and connectivity.
-- The application uses the packaged generator and BFS implementation through
-  compatibility adapters.
-- A graphical smoke test requires a Linux MiniLibX display. Headless unit tests
-  can run without one.
+AI was used as a development assistant for reviewing the subject requirements,
+checking edge cases in configuration and output handling, improving the
+MiniLibX animation and control documentation, and drafting this README. All
+generated suggestions were inspected and adapted to the project.
 
 ## License
 
-This project is distributed under the MIT License; see `LICENSE.md`.
+This project is distributed under the MIT License. See
+[`LICENSE.md`](LICENSE.md).
