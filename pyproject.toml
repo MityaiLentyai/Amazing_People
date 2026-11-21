@@ -25,3 +25,12 @@ module-root = "src"
 
 [tool.uv.sources]
 mlx = { path = "mlx-2.2/ubuntu/mlx-2.2-py3-none-any.whl" }
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["mlx", "mlx.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
