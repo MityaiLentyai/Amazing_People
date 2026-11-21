@@ -10,19 +10,23 @@ class BFS:
     def get_accessible_neighbors(self, point: Point) -> list[Point]:
         return self.grid.get_open_playable_neighbors(point)
 
-    def reconstruct_path(self, parent: dict[Point, Point | None]) -> list[Point]:
+    def reconstruct_path(
+            self, parent: dict[Point, Point | None]) -> list[Point]:
         path = [self.grid.end]
         current = self.grid.end
         while parent[current] is not None:
-            path.append(parent[current])
-            current = parent[current]
+            following = parent[current]
+            if following is None:
+                break
+            path.append(following)
+            current = following
         path.reverse()
         return path
 
     def find_path(self) -> list[Point] | None:
-        if not self.grid.is_playable(self.grid.start) or not self.grid.is_playable(
-            self.grid.end
-        ):
+        if not self.grid.is_playable(
+                self.grid.start) or not self.grid.is_playable(
+                self.grid.end):
             return None
 
         visited = {self.grid.start}

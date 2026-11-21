@@ -1,93 +1,137 @@
+"""Configuration parsing and validation for A-Maze-ing."""
+
 import sys
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator, field_validator, \
-    ValidationError
+from pydantic import (
+    BaseModel,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
+
+
+class ConfigError(ValueError):
+    """Raised when a maze configuration cannot be parsed safely."""
+
 
 class Config(BaseModel):
-    width: int = Field(ge=1, alias="WIDTH")
-    height: int = Field(ge=1, alias="HEIGHT")
+    """Validated A-Maze-ing configuration."""
+
+    width: int = Field(ge=1, strict=True, alias="WIDTH")
+    height: int = Field(ge=1, strict=True, alias="HEIGHT")
     entry: tuple[int, int] = Field(alias="ENTRY")
     exit: tuple[int, int] = Field(alias="EXIT")
     output: str = Field(alias="OUTPUT_FILE")
-    is_perfect: bool = Field(default=False, alias="PERFECT") # TODO: should it be mandatory present??? Cause if we have default value then pydantic doesn't error it out
+    is_perfect: bool = Field(alias="PERFECT")
     seed: int | None = Field(default=None, alias="SEED")
-    algorithm: Literal["dfs", "prim"] = Field(default="dfs", alias="ALGORITHM")
+    algorithm: Literal["dfs", "prim"] = Field(
+        default="dfs",
+        alias="ALGORITHM",
+    )
+
+    @field_validator("width", "height", mode="before")
+    @classmethod
+    def parse_positive_integer(cls, value: object) -> object:
+        """Parse positive integer fields read from text configuration."""
+        if isinstance(value, str):
+            try:
+                return int(value.strip())
+            except ValueError as error:
+                raise ValueError("Maze dimensions must be integers") from error
+        return value
 
     @model_validator(mode="after")
-    def entry_validator(self):
-
+    def validate_entry(self) -> "Config":
+        """Validate that the entry is inside the maze."""
         x, y = self.entry
-
         if not (0 <= x < self.width):
             raise ValueError("Entry point X is outside the maze")
-
         if not (0 <= y < self.height):
             raise ValueError("Entry point Y is outside the maze")
-
         return self
 
     @model_validator(mode="after")
-    def exit_validator(self):
-
+    def validate_exit(self) -> "Config":
+        """Validate that the exit is inside the maze."""
         x, y = self.exit
-
         if not (0 <= x < self.width):
             raise ValueError("Exit point X is outside the maze")
-
         if not (0 <= y < self.height):
             raise ValueError("Exit point Y is outside the maze")
-
         return self
 
     @model_validator(mode="after")
-    def entry_exit_validator(self):
+    def validate_distinct_endpoints(self) -> "Config":
+        """Validate that entry and exit are different."""
         if self.entry == self.exit:
             raise ValueError("Entry and exit cells must be different")
         return self
 
     @field_validator("entry", "exit", mode="before")
     @classmethod
-    def parse_coordinates(cls, value):
+    def parse_coordinates(cls, value: object) -> object:
+        """Parse an ``x,y`` coordinate string."""
         if isinstance(value, str):
-            x, y = value.split(",")
-            return int(x), int(y)
+            parts = value.split(",")
+            if len(parts) != 2:
+                raise ValueError("Coordinates must use the format x,y")
+            try:
+                return int(parts[0].strip()), int(parts[1].strip())
+            except ValueError as error:
+                raise ValueError(
+                    "Coordinates must contain two integers"
+                ) from error
         return value
 
     @field_validator("algorithm", mode="before")
     @classmethod
-    def normalize_algorithm(cls, value):
+    def normalize_algorithm(cls, value: object) -> object:
+        """Normalize the optional algorithm name."""
         return value.lower() if isinstance(value, str) else value
+
+    @field_validator("is_perfect", mode="before")
+    @classmethod
+    def normalize_perfect(cls, value: object) -> object:
+        """Accept only the explicit boolean values True or False."""
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in ("true", "false"):
+                return normalized == "true"
+            raise ValueError("PERFECT must be True or False")
+        return value
 
 
 def parse_input(config_name: str) -> Config:
-    config = {}
+    """Read and validate a maze configuration file."""
+    config: dict[str, str] = {}
     try:
-        with open(config_name, "r") as file:
+        with open(config_name, "r", encoding="utf-8") as file:
             for line in file:
-                parsed_line = line.split("#")[0].strip()
+                parsed_line = line.split("#", 1)[0].strip()
                 if "=" in parsed_line:
                     key, value = parsed_line.split("=", 1)
-                    # print(key,value) # TODO: delete when done testing
-                    config.update({key: value})
-        config = Config(**config)
-        print(
-            config)  # TODO: Delete this print when parser erroring is done
-        return config
-    # Now config is not a dict but a Pydantic Config object.
-    # you can access it with print(config.field)
-    except FileNotFoundError as e:
-        print(f"File {config_name} not found, please make sure it exists and "
-              f"try again.")
-        exit()
-    except PermissionError as e:
-        print(f"Not enough access rights to either {config_name} or "
-              f"{sys.argv[0]}\nPlease update the rights and try again\n"
-              f"Exiting now xDD")
-        exit()
-    except ValidationError as e:
-        print(e)
-        exit()
+                    config[key.strip()] = value.strip()
+        return Config.model_validate(config)
+    except FileNotFoundError as error:
+        raise ConfigError(
+            f"Config file not found: {config_name}"
+        ) from error
+    except PermissionError as error:
+        raise ConfigError(
+            f"Not enough access rights to read {config_name}"
+        ) from error
+    except ValidationError as error:
+        raise ConfigError(str(error)) from error
+
 
 if __name__ == "__main__":
-    parse_input(sys.argv[1])
+    if len(sys.argv) != 2:
+        print("Usage: python3 -m src.file_input config.txt")
+        raise SystemExit(1)
+    try:
+        print(parse_input(sys.argv[1]))
+    except ConfigError as error:
+        print(f"Invalid configuration: {error}")
+        raise SystemExit(1) from error

@@ -2,6 +2,7 @@ import random
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from enum import IntFlag
+from typing import Protocol
 
 
 @dataclass(frozen=True)
@@ -26,6 +27,25 @@ WALLS_BY_DIRECTION = {
     (-1, 0): (Wall.WEST, Wall.EAST),
 }
 ALGORITHMS = ("dfs", "prim")
+
+
+class MazeConfig(Protocol):
+    """Minimal application configuration consumed by the adapter."""
+
+    width: int
+    height: int
+    entry: Point | tuple[int, int]
+    exit: Point | tuple[int, int]
+    is_perfect: bool
+    seed: int | None
+    algorithm: str
+
+
+class StepGenerator(Protocol):
+    """Common interface for maze generation engines."""
+
+    def generate(self) -> None:
+        """Generate passages into the configured grid."""
 
 
 class Grid:
@@ -72,7 +92,8 @@ class Grid:
             Point(point.x, point.y - 1),
             Point(point.x, point.y + 1),
         )
-        return [neighbor for neighbor in neighbors if self.is_playable(neighbor)]
+        return [
+            neighbor for neighbor in neighbors if self.is_playable(neighbor)]
 
     def _wall_pair(
         self,
@@ -160,7 +181,11 @@ class MazeGenerator:
     ) -> None:
         if not isinstance(width, int) or isinstance(width, bool) or width < 1:
             raise ValueError("Width must be a positive integer")
-        if not isinstance(height, int) or isinstance(height, bool) or height < 1:
+        if not isinstance(
+                height,
+                int) or isinstance(
+                height,
+                bool) or height < 1:
             raise ValueError("Height must be a positive integer")
 
         self.width = width
@@ -174,9 +199,13 @@ class MazeGenerator:
         if self.entry == self.exit:
             raise ValueError("Entry and exit cells must be different")
 
-        normalized_algorithm = algorithm.lower() if isinstance(algorithm, str) else ""
+        normalized_algorithm = (
+            algorithm.lower() if isinstance(algorithm, str) else ""
+        )
         if normalized_algorithm not in ALGORITHMS:
-            raise ValueError(f"Algorithm must be one of: {', '.join(ALGORITHMS)}")
+            raise ValueError(
+                f"Algorithm must be one of: {', '.join(ALGORITHMS)}"
+            )
 
         self.perfect = perfect
         self.seed = seed
@@ -206,7 +235,12 @@ class MazeGenerator:
         return 0 <= point.x < self.width and 0 <= point.y < self.height
 
     def _new_grid(self) -> Grid:
-        return Grid(self.width, self.height, self.entry, self.exit, self.perfect)
+        return Grid(
+            self.width,
+            self.height,
+            self.entry,
+            self.exit,
+            self.perfect)
 
     def generate(self) -> Grid:
         """Create a fresh maze and cache its shortest path and directions."""
@@ -225,17 +259,20 @@ class MazeGenerator:
         if self.algorithm == "dfs":
             from .dfs import DFSGenerator
 
-            generator_type = DFSGenerator
+            generator: StepGenerator = DFSGenerator(
+                self.grid,
+                seed=self.seed,
+                generation_steps=self.generation_steps,
+            )
         else:
             from .primm import PrimGenerator
 
-            generator_type = PrimGenerator
-
-        generator_type(
-            self.grid,
-            seed=self.seed,
-            generation_steps=self.generation_steps,
-        ).generate()
+            generator = PrimGenerator(
+                self.grid,
+                seed=self.seed,
+                generation_steps=self.generation_steps,
+            )
+        generator.generate()
         self.solve()
         return self.grid
 
@@ -271,7 +308,7 @@ class MazeGenerator:
 
 
 def generate_maze(
-    config,
+    config: MazeConfig,
     generation_steps: list[tuple[Point, Point]] | None = None,
 ) -> Grid:
     """Compatibility adapter for the application's configuration object."""

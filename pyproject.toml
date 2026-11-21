@@ -10,6 +10,8 @@ dependencies = []
 [dependency-groups]
 dev = [
     "mlx",
+    "flake8",
+    "mypy",
     "pydantic==2.14.4",
 ]
 

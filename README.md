@@ -25,8 +25,11 @@ the grid can accommodate it without blocking the entry, exit, or connectivity.
 - Text output containing hexadecimal wall flags, coordinates, and path directions.
 - MiniLibX display with animated passage carving, entry/exit markers, and a
   shortest-path overlay.
-- Clickable **New maze** and **Show path** / **Hide path** controls.
-- Keyboard controls for path visibility, wall colors, regeneration, and exit.
+- A clean visualizer footer with keyboard-only controls.
+- Fixed visualizer window dimensions and persistent keyboard legend.
+- Live DFS/Prim algorithm selection while the visualizer is running.
+- Keyboard controls for algorithm selection, path visibility, wall colors,
+  regeneration, and exit.
 - `src/maze_analyzer.py` to inspect output-file wall consistency, connectivity,
   loops, and dead ends.
 
@@ -69,8 +72,8 @@ The repository includes `config.txt` as the default configuration. Use one
 `KEY=VALUE` pair per line; lines beginning with `#` and trailing `#` comments
 are ignored. Coordinates are zero-based `(x,y)` pairs. The parser accepts
 coordinates written as `x,y`. The subject requires `WIDTH`, `HEIGHT`, `ENTRY`,
-`EXIT`, `OUTPUT_FILE`, and `PERFECT`; the current parser defaults an omitted
-`PERFECT` value to `False`. `SEED` is an optional project-specific setting.
+`EXIT`, `OUTPUT_FILE`, and `PERFECT`; `PERFECT` is now mandatory and must be
+`True` or `False`. `SEED` is an optional project-specific setting.
 
 | Key | Meaning | Example / default |
 | --- | --- | --- |
@@ -79,7 +82,7 @@ coordinates written as `x,y`. The subject requires `WIDTH`, `HEIGHT`, `ENTRY`,
 | `ENTRY` | Entry cell as `x,y`, within the grid. | `ENTRY=0,0` |
 | `EXIT` | Exit cell as `x,y`, within the grid. | `EXIT=6,8` |
 | `OUTPUT_FILE` | Destination for the generated maze and solution. | `OUTPUT_FILE=maze.txt` |
-| `PERFECT` | Generate a perfect maze when `True`; defaults to `False` in the current parser. | `PERFECT=True` |
+| `PERFECT` | Generate a perfect maze when `True`; required. | `PERFECT=True` |
 | `ALGORITHM` | Generation algorithm: depth-first search (`dfs`) or randomized Prim (`prim`); defaults to `dfs`. | `ALGORITHM=dfs` |
 | `SEED` | Optional integer seed for repeatable generation. | `SEED=43` |
 
@@ -97,8 +100,8 @@ SEED=43
 ```
 
 For reproducible output, keep the same configuration and seed. If `SEED` is
-omitted, Python's random generator chooses an unseeded sequence. Clicking **New
-maze** (or pressing `R`) uses a fresh seed for the new maze; it saves that
+omitted, Python's random generator chooses an unseeded sequence. Pressing `R`
+uses a fresh seed for the new maze; it saves that
 maze and its solution to the same output path, but does not rewrite the
 configuration file with the new seed.
 
@@ -122,8 +125,10 @@ the animation completes when path display is enabled.
 
 | Input | Action |
 | --- | --- |
-| Click **New maze** or press `R` | Generate another maze and update the output file. |
-| Click **Show path** / **Hide path** or press `P` | Toggle the shortest-path overlay. |
+| `1` or `D` | Switch to depth-first search (DFS) and regenerate. |
+| `2` or `A` | Switch to randomized Prim or cycle to the next algorithm. |
+| `R` | Generate another maze and update the output file. |
+| `P` | Toggle the shortest-path overlay. |
 | Press `C` | Cycle through wall colors. |
 | Press `Q` or `Escape` | Close the visualizer. |
 
@@ -254,14 +259,13 @@ generation-step recording and animation, project documentation.
 
 ## Current implementation notes
 
-- The subject says the entry and exit must be different. The current
-  configuration parser checks that both are inside the grid, but it does not
-  explicitly reject matching coordinates.
+- The configuration parser requires `PERFECT`, validates that entry and exit
+  are distinct and inside the grid, and supports optional `ALGORITHM` and
+  `SEED` keys.
 - A `42` pattern needs at least a 7-by-5 grid and can still be omitted if no
   placement preserves the required cells and connectivity.
 - The application uses the packaged generator and BFS implementation through
-  compatibility adapters. The project root does not currently include the
-  subject's requested Makefile, so use the `uv` commands above.
+  compatibility adapters.
 - A graphical smoke test requires a Linux MiniLibX display. Headless unit tests
   can run without one.
 
