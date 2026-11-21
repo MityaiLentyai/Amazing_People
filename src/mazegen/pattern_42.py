@@ -1,6 +1,6 @@
 from collections import deque
 
-from Mazegen.maze_generator import Point
+from .maze_generator import Point
 
 
 DIGIT_FOUR: tuple[tuple[int, ...], ...] = (
@@ -22,7 +22,7 @@ DIGIT_TWO: tuple[tuple[int, ...], ...] = (
 DIGIT_GAP = 1
 PATTERN_42_WIDTH = len(DIGIT_FOUR[0]) + DIGIT_GAP + len(DIGIT_TWO[0])
 PATTERN_42_HEIGHT = len(DIGIT_FOUR)
-CARDINAL_STEPS = ((0, -1), (1, 0), (0, 1), (-1, 0)) # maybe hyinya, hz kak eshe
+CARDINAL_STEPS = ((0, -1), (1, 0), (0, 1), (-1, 0))
 
 
 def cells_from_bitmap(

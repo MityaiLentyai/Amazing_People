@@ -1,4 +1,6 @@
 import sys
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator, field_validator, \
     ValidationError
 
@@ -10,6 +12,7 @@ class Config(BaseModel):
     output: str = Field(alias="OUTPUT_FILE")
     is_perfect: bool = Field(default=False, alias="PERFECT") # TODO: should it be mandatory present??? Cause if we have default value then pydantic doesn't error it out
     seed: int | None = Field(default=None, alias="SEED")
+    algorithm: Literal["dfs", "prim"] = Field(default="dfs", alias="ALGORITHM")
 
     @model_validator(mode="after")
     def entry_validator(self):
@@ -37,6 +40,12 @@ class Config(BaseModel):
 
         return self
 
+    @model_validator(mode="after")
+    def entry_exit_validator(self):
+        if self.entry == self.exit:
+            raise ValueError("Entry and exit cells must be different")
+        return self
+
     @field_validator("entry", "exit", mode="before")
     @classmethod
     def parse_coordinates(cls, value):
@@ -44,6 +53,11 @@ class Config(BaseModel):
             x, y = value.split(",")
             return int(x), int(y)
         return value
+
+    @field_validator("algorithm", mode="before")
+    @classmethod
+    def normalize_algorithm(cls, value):
+        return value.lower() if isinstance(value, str) else value
 
 
 def parse_input(config_name: str) -> Config:
@@ -77,4 +91,3 @@ def parse_input(config_name: str) -> Config:
 
 if __name__ == "__main__":
     parse_input(sys.argv[1])
-

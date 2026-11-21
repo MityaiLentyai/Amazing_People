@@ -1,9 +1,9 @@
 import random
 
-from Mazegen.maze_generator import Grid, Point
+from .maze_generator import Grid, Point
 
 
-class MazeGenerator:
+class PrimGenerator:
     def __init__(
         self,
         grid: Grid,
@@ -107,3 +107,6 @@ class MazeGenerator:
                 loops_needed -= 1
             if loops_needed <= 0:
                 return
+
+
+MazeGenerator = PrimGenerator

@@ -4,7 +4,8 @@ from collections.abc import Callable
 from typing import Any, Protocol
 
 from mlx import Mlx
-from Mazegen.maze_generator import Grid, Point, Wall
+from mazegen import Grid, MazeGenerator, Point, Wall
+from src.file_output import parse_output
 
 
 class MlxApi(Protocol):
@@ -54,6 +55,39 @@ class MazeRenderer:
     start_color = 0xFF2ECC71
     end_color = 0xFFE74C3C
     wall_colors = (0xFFE6EDF3, 0xFF7BDFF2, 0xFFFFAFCC, 0xFFC1FBA4)
+
+    @classmethod
+    def from_generator(
+        cls,
+        maze: MazeGenerator,
+        output_file: str | None = None,
+        *,
+        mlx: MlxApi | None = None,
+    ) -> "MazeRenderer":
+        return cls(
+            maze.grid,
+            maze.path,
+            cls._make_regenerator(maze, output_file),
+            generation_steps=maze.generation_steps,
+            mlx=mlx,
+        )
+
+    @staticmethod
+    def _make_regenerator(
+        maze: MazeGenerator,
+        output_file: str | None,
+    ) -> Callable[[], tuple[Grid, list[Point], list[tuple[Point, Point]]]]:
+        def regenerate() -> tuple[Grid, list[Point], list[tuple[Point, Point]]]:
+            grid = maze.regenerate()
+            path = maze.path
+            if path is None:
+                raise RuntimeError("Regenerated maze has no path from entry to exit")
+
+            if output_file is not None:
+                parse_output(output_file, maze.directions, grid)
+            return grid, path, maze.generation_steps
+
+        return regenerate
 
     def __init__(
         self,

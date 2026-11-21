@@ -80,6 +80,7 @@ coordinates written as `x,y`. The subject requires `WIDTH`, `HEIGHT`, `ENTRY`,
 | `EXIT` | Exit cell as `x,y`, within the grid. | `EXIT=6,8` |
 | `OUTPUT_FILE` | Destination for the generated maze and solution. | `OUTPUT_FILE=maze.txt` |
 | `PERFECT` | Generate a perfect maze when `True`; defaults to `False` in the current parser. | `PERFECT=True` |
+| `ALGORITHM` | Generation algorithm: depth-first search (`dfs`) or randomized Prim (`prim`); defaults to `dfs`. | `ALGORITHM=dfs` |
 | `SEED` | Optional integer seed for repeatable generation. | `SEED=43` |
 
 Example:
@@ -91,6 +92,7 @@ ENTRY=0,0
 EXIT=6,8
 OUTPUT_FILE=maze.txt
 PERFECT=True
+ALGORITHM=dfs
 SEED=43
 ```
 
@@ -127,71 +129,76 @@ the animation completes when path display is enabled.
 
 ## Algorithm choice
 
-`src/Mazegen` implements an iterative depth-first backtracker: it starts at the
+`ALGORITHM=dfs` selects the iterative depth-first backtracker: it starts at the
 entry, chooses an unvisited playable neighbor, opens the shared wall, and
-backtracks when no unvisited neighbor remains. This is a compact way to visit
-every connected playable cell and, before non-perfect post-processing, carve
-a spanning tree. The optional seed makes the same choices reproducible.
+backtracks when no unvisited neighbor remains. `ALGORITHM=prim` selects the
+randomized Prim generator, which grows the maze from a frontier of adjacent
+unvisited cells. Both algorithms visit every connected playable cell and carve
+a spanning tree before non-perfect post-processing. The optional seed makes
+the same choices reproducible.
 
 For `PERFECT=True`, the spanning-tree passages remain the generated maze. For
 `PERFECT=False`, post-processing opens more passages, aims to keep the four
 corners and center usable, reduces dead ends, and adds at least two independent
 loops when the available cells permit it. The implementation uses BFS in
-`src/bfs.py` because each grid move has equal cost; BFS returns a shortest
+`src/mazegen/solver.py` because each grid move has equal cost; BFS returns a shortest
 route in number of cell-to-cell moves.
 
 ## Reusing the generator
 
-The generator API is available from the `src` Python package. Configure custom
-dimensions, endpoints, mode, and seed with `Config`; `generate_maze` returns a
-`Grid`, whose wall flags, endpoints, and reserved cells can be inspected. Use
-`BFS` to obtain a shortest path as `Point` objects and `get_direction` to
-convert it to the output's direction letters:
-
-```python
-from src.bfs import BFS
-from src.file_input import Config
-from Mazegen.maze_generator import generate_maze
-
-config = Config(
-    WIDTH=20,
-    HEIGHT=15,
-    ENTRY=(0, 0),
-    EXIT=(19, 14),
-    OUTPUT_FILE="maze.txt",
-    PERFECT=True,
-    SEED=43,
-)
-grid = generate_maze(config)
-solver = BFS(grid)
-path = solver.find_path()
-if path is None:
-    raise RuntimeError("No route from entry to exit")
-
-directions = solver.get_direction(path)
-print(grid.width, grid.height, grid.start, grid.end)
-print("Shortest path:", "".join(directions))
-print("Reserved cells:", grid.reserved_cells)
-print("Wall flags at (0, 0):", grid.cells[0][0])
-```
-
-`src.dfs.MazeGenerator` is the generator class; the higher-level
-`src.maze_generator.generate_maze` function creates the grid and applies the
-`42`-pattern placement before invoking it. The project metadata names the
-installable distribution `mazegen` and configures its Python module as `src`;
-import the documented `src.*` modules rather than `mazegen`.
-
-To rebuild the distribution from the project sources, use `uv build`. A wheel
-is also included at the repository root. In a Python environment, install the
-included distribution and its bundled MiniLibX dependency with:
+The maze generator is a standalone Python library with no runtime dependencies.
+Build the wheel with `uv build --wheel -o .`, then install it in the
+project or another Python environment:
 
 ```sh
-python3 -m pip install ./mazegen-0.1.0-py3-none-any.whl ./libs/mlx-2.2-py3-none-any.whl
+python -m pip install mazegen-*.whl
 ```
 
-The bundled MiniLibX wheel targets Linux. After installation, import the
-documented modules as `src.*`; the source modules and this README provide the
-reusable API example and usage documentation.
+Then create a maze directly, without the application's configuration parser,
+file output, or MiniLibX visualizer:
+
+```python
+from mazegen import MazeGenerator
+
+maze = MazeGenerator(
+    width=20,
+    height=15,
+    entry=(0, 0),
+    exit=(19, 14),
+    perfect=True,
+    seed=43,
+    algorithm="dfs",
+)
+grid = maze.generate()
+print("Shortest path:", "".join(maze.directions))
+print("Path cells:", maze.path)
+print("Wall flags at (0, 0):", grid.cells[0][0])
+print("Hex rows:", maze.to_hex_rows())
+
+# Create a new maze with a seed not used by this instance.
+grid = maze.regenerate()
+print("New seed:", maze.seed)
+```
+
+`width` and `height` are positive cell counts; `entry` and `exit` accept
+`(x, y)` tuples or `Point` objects and must be inside the grid. Set `perfect`
+to `False` for additional loops, pass an integer `seed` for repeatable output,
+and choose `"dfs"` or `"prim"` with `algorithm`.
+
+`generate()` returns a `Grid`. Inspect `grid.cells` for `Wall` flags,
+`grid.start`/`grid.end` for endpoints, and `grid.reserved_cells` for the
+optional `42` pattern. The generator stores the shortest route in `maze.path`
+and its `N`/`E`/`S`/`W` directions in `maze.directions`; call `maze.solve()` to
+recompute the route. `maze.regenerate()` changes the seed to a new unused value
+and updates the grid, route, directions, and `generation_steps`. The
+`ALGORITHMS` constant lists supported choices. `maze.to_hex_rows()` returns the
+maze in the project's hexadecimal wall-flag format.
+
+To build the wheel from the repository root, run:
+
+```sh
+uv build --wheel -o .
+```
 
 ## Project structure
 
@@ -204,20 +211,18 @@ reusable API example and usage documentation.
 ├── LICENSE.md                    # MIT license
 ├── .gitignore                    # Python/build artifacts and IDE files
 ├── .python-version               # Python 3.14 project pin
-├── libs/
-│   └── mlx-2.2-py3-none-any.whl  # Bundled MiniLibX Python package
-├── mazegen-0.1.0-py3-none-any.whl
 ├── pyproject.toml                # Project and build configuration
 ├── uv.lock                       # Locked dependency versions
 ├── src/
-│   ├── 42.py                     # Reserved-cell pattern placement
-│   ├── bfs.py                    # Shortest-path search
-│   ├── dfs.py                    # Depth-first maze generation
+│   ├── mazegen/                  # Reusable maze library
+│   │   ├── dfs.py                # Depth-first generation engine
+│   │   ├── maze_generator.py     # Public API and grid model
+│   │   ├── pattern_42.py         # Reserved-cell pattern placement
+│   │   ├── primm.py              # Prim generation engine
+│   │   └── solver.py             # Breadth-first shortest-path search
 │   ├── file_input.py             # Configuration parsing and validation
 │   ├── file_output.py            # Maze and solution serialization
 │   ├── maze_analyzer.py          # Output-file analysis utility
-│   ├── maze_generator.py         # Grid model and generation entry point
-│   ├── primm.py                  # Not currently used by the generation flow
 │   └── visualizer.py             # MiniLibX renderer and interactions
 ```
 
@@ -254,9 +259,9 @@ generation-step recording and animation, project documentation.
   explicitly reject matching coordinates.
 - A `42` pattern needs at least a 7-by-5 grid and can still be omitted if no
   placement preserves the required cells and connectivity.
-- The current project uses DFS; `src/Mazegen` is not connected to the active
-  generation flow. The project root does not currently include the subject's
-  requested Makefile, so use the `uv` commands above.
+- The application uses the packaged generator and BFS implementation through
+  compatibility adapters. The project root does not currently include the
+  subject's requested Makefile, so use the `uv` commands above.
 - A graphical smoke test requires a Linux MiniLibX display. Headless unit tests
   can run without one.
 

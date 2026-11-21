@@ -1,9 +1,9 @@
 import random
 
-from maze_generator import Grid, Point
+from .maze_generator import Grid, Point
 
 
-class MazeGenerator:
+class DFSGenerator:
     def __init__(
         self,
         grid: Grid,
@@ -102,3 +102,6 @@ class MazeGenerator:
                     self.open_passage(c, r)
                 else:
                     break
+
+
+MazeGenerator = DFSGenerator

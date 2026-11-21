@@ -15,21 +15,25 @@ wheels = [
 name = "mazegen"
 version = "0.1.0"
 source = { editable = "." }
-dependencies = [
+
+[package.dev-dependencies]
+dev = [
     { name = "mlx" },
     { name = "pydantic" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "mlx", path = "libs/mlx-2.2-py3-none-any.whl" },
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mlx", path = "mlx-2.2/ubuntu/mlx-2.2-py3-none-any.whl" },
     { name = "pydantic", specifier = "==2.14.4" },
 ]
 
 [[package]]
 name = "mlx"
 version = "2.2"
-source = { path = "libs/mlx-2.2-py3-none-any.whl" }
+source = { path = "mlx-2.2/ubuntu/mlx-2.2-py3-none-any.whl" }
 wheels = [
     { filename = "mlx-2.2-py3-none-any.whl", hash = "sha256:7a1a44b50b6295f574522ba1a1e589632c6299d193dec57c951e8fdfb3337195" },
 ]
