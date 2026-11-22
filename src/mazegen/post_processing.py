@@ -6,58 +6,29 @@ from collections.abc import Callable
 from .maze_generator import Grid, Point
 
 
-def clone_grid(grid: Grid) -> Grid:
-    """Copy a grid, including wall flags and reserved cells."""
-    cloned = Grid(
-        grid.width,
-        grid.height,
-        grid.start,
-        grid.end,
-        grid.perfect,
-    )
-    cloned.reserve_cells(grid.reserved_cells)
-    for y in range(grid.height):
-        for x in range(grid.width):
-            cloned.cells[y][x] = grid.cells[y][x]
-    return cloned
-
-
-def has_three_by_three_open_area(grid: Grid) -> bool:
-    """Return True if any fully open 3x3 area exists."""
-    if grid.width < 3 or grid.height < 3:
-        return False
-    for y in range(grid.height - 2):
-        for x in range(grid.width - 2):
-            points = [
-                Point(px, py)
-                for py in range(y, y + 3)
-                for px in range(x, x + 3)
-            ]
-            if not all(grid.is_playable(point) for point in points):
-                continue
-            fully_open = True
-            for py in range(y, y + 3):
-                for px in range(x, x + 2):
-                    left = Point(px, py)
-                    right = Point(px + 1, py)
-                    if not grid.is_open_passage(left, right):
-                        fully_open = False
-                        break
-                if not fully_open:
-                    break
-            if fully_open:
-                for py in range(y, y + 2):
-                    for px in range(x, x + 3):
-                        top = Point(px, py)
-                        bottom = Point(px, py + 1)
-                        if not grid.is_open_passage(top, bottom):
-                            fully_open = False
-                            break
-                    if not fully_open:
-                        break
-            if fully_open:
-                return True
-    return False
+def _is_open_3x3_after_removal(
+    grid: Grid,
+    x: int,
+    y: int,
+    removed_wall: tuple[Point, Point],
+) -> bool:
+    """Check all internal passages, treating the candidate wall as open."""
+    for row in range(y, y + 3):
+        for column in range(x, x + 3):
+            cell = Point(column, row)
+            if column < x + 2:
+                right = Point(column + 1, row)
+                if (cell, right) != removed_wall and not grid.is_open_passage(
+                    cell, right
+                ):
+                    return False
+            if row < y + 2:
+                below = Point(column, row + 1)
+                if (cell, below) != removed_wall and not grid.is_open_passage(
+                    cell, below
+                ):
+                    return False
+    return True
 
 
 def can_open_without_large_area(
@@ -65,11 +36,27 @@ def can_open_without_large_area(
     point1: Point,
     point2: Point,
 ) -> bool:
-    """Check whether opening an edge keeps corridors at most 2 cells wide."""
-    simulated = clone_grid(grid)
-    if not simulated.open_passage(point1, point2):
+    """Check whether opening a passage creates a fully open 3x3 area.
+
+    Post-processing starts with a spanning tree and preserves the absence
+    of open 3x3 areas, so only windows spanning this wall can become open.
+    """
+    if point2 not in grid.get_playable_neighbors(point1):
         return False
-    return not has_three_by_three_open_area(simulated)
+
+    if point1.x > point2.x or point1.y > point2.y:
+        point1, point2 = point2, point1
+    removed_wall = (point1, point2)
+    first_x = max(0, point2.x - 2)
+    last_x = min(grid.width - 3, point1.x)
+    first_y = max(0, point2.y - 2)
+    last_y = min(grid.height - 3, point1.y)
+
+    for y in range(first_y, last_y + 1):
+        for x in range(first_x, last_x + 1):
+            if _is_open_3x3_after_removal(grid, x, y, removed_wall):
+                return False
+    return True
 
 
 class PostProcessor:

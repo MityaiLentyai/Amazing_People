@@ -4,8 +4,8 @@ from .maze_generator import Point
 
 
 DIGIT_FOUR: tuple[tuple[int, ...], ...] = (
-    (1, 0, 1),
-    (1, 0, 1),
+    (1, 0, 0),
+    (1, 0, 0),
     (1, 1, 1),
     (0, 0, 1),
     (0, 0, 1),
