@@ -354,10 +354,9 @@ Short package-specific documentation is also available in
 
 ## Team and project management
 
-- **bdubovik:** visualization, BFS solving, DFS generation and reusable
+- **bdubovik:** implemented visualization, BFS solving, DFS generation and reusable
   package integration.
-- **tmalyshi:** Prim generation, configuration input, output serialization and
-  `42` pattern processing.
+- **tmalyshi:** implemented Prim's maze generation algorithm, configuration file reading and validation, maze output formatting and saving, and the generation and placement of the 42 pattern.
 
 The initial plan was to implement a compliant generator, add a MiniLibX
 display, and package the generation logic for reuse. During implementation,
