@@ -57,6 +57,14 @@ Run all commands from the repository root.
 
 ### Install
 
+The Makefile provides the project shortcuts:
+
+```sh
+make install
+```
+
+The equivalent direct `uv` command is:
+
 ```sh
 uv sync
 ```
@@ -66,7 +74,14 @@ validation and the bundled MiniLibX wheel for development and display.
 
 ### Run the application
 
-The required command-line interface accepts exactly one argument:
+The required command-line interface accepts exactly one argument. Use the
+Makefile target on a system with `make`:
+
+```sh
+make run
+```
+
+The equivalent direct `uv` command is:
 
 ```sh
 uv run python a_maze_ing.py config.txt
@@ -93,7 +108,13 @@ uv run mypy . --warn-return-any --warn-unused-ignores \
 
 ### Build the reusable package
 
-Build a wheel at the repository root:
+Build a wheel at the repository root with Make:
+
+```sh
+make build
+```
+
+The direct `uv` command is:
 
 ```sh
 uv build --wheel -o .
@@ -102,8 +123,13 @@ uv build --wheel -o .
 The resulting `mazegen-*.whl` can be installed into another environment:
 
 ```sh
-python3 -m pip install mazegen-*.whl
+uv pip install ./mazegen-0.1.0-py3-none-any.whl
 ```
+
+The wheel contains the reusable `mazegen` library, but not the application
+entry point or visualizer. With only the `.whl` file and no application
+sources, you can use the library in Python, but you cannot run
+`a_maze_ing.py`, use `config.txt`, or open the MiniLibX visualizer.
 
 ## Configuration file
 
