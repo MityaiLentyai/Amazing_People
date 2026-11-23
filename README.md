@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by bdubovik and tmalyshi.*
+*This project has been created as part of the 42 curriculum by bdubovik, tmalyshi.*
 
 # A-Maze-ing
 
@@ -125,6 +125,51 @@ The resulting `mazegen-*.whl` can be installed into another environment:
 ```sh
 uv pip install ./mazegen-0.1.0-py3-none-any.whl
 ```
+### Using the Makefile
+
+The project provides a Makefile to simplify installation, execution, debugging, and code quality checks. All commands should be executed from the root directory of the repository.
+
+| Command | Description |
+|---|---|
+| `make install` | Installs and synchronizes project dependencies using `uv sync`. |
+| `make run` | Runs A-Maze-ing using `config.txt` as the configuration file. |
+| `make debug` | Runs the application with Python's built-in debugger (`pdb`). |
+| `make lint` | Checks code style with `flake8` and performs type checking with `mypy`. |
+| `make lint-strict` | Performs stricter type checking using `mypy --strict` alongside `flake8`. |
+| `make clean` | Removes Python `__pycache__` directories and the `.mypy_cache` directory. |
+
+**Installation and execution:**
+
+```bash
+make install
+make run
+```
+
+**Debugging:**
+
+```bash
+make debug
+```
+
+**Code quality checks:**
+
+```bash
+make lint
+make lint-strict
+```
+
+**Cleaning generated cache files:**
+
+```bash
+make clean
+```
+
+The Makefile's `run` and `debug` targets use `config.txt` by default. To run the application with a different configuration file, use the direct execution command and provide the desired filename.
+
+The wheel contains the reusable `mazegen` library, but not the application
+entry point or visualizer. With only the `.whl` file and no application
+sources, you can use the library in Python, but you cannot run
+`a_maze_ing.py`, use `config.txt`, or open the MiniLibX visualizer.
 
 The wheel contains the reusable `mazegen` library, but not the application
 entry point or visualizer. With only the `.whl` file and no application
@@ -314,10 +359,9 @@ Short package-specific documentation is also available in
 
 ## Team and project management
 
-- **bdubovik:** visualization, BFS solving, DFS generation and reusable
+- **bdubovik:** implemented visualization, BFS solving, DFS generation and reusable
   package integration.
-- **tmalyshi:** Prim generation, configuration input, output serialization and
-  `42` pattern processing.
+- **tmalyshi:** implemented Prim's maze generation algorithm, configuration file reading and validation, maze output formatting and saving, and the generation and placement of the 42 pattern.
 
 The initial plan was to implement a compliant generator, add a MiniLibX
 display, and package the generation logic for reuse. During implementation,
