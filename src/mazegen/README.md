@@ -5,12 +5,46 @@ connected mazes.
 
 ## Install
 
-Build and install the package from the project root:
+### From the repository source
+
+If the complete repository is available, build and install the package from
+the project root:
 
 ```sh
 uv build --wheel -o .
-python -m pip install mazegen-*.whl
+uv pip install ./mazegen-0.1.0-py3-none-any.whl
 ```
+
+You can also let `uv` build and install the package directly:
+
+```sh
+uv pip install .
+```
+
+### From an existing wheel
+
+With an existing `mazegen-*.whl` file, no `src/mazegen` source directory is
+needed:
+
+```sh
+uv pip install ./mazegen-0.1.0-py3-none-any.whl
+```
+
+The conventional `pip` form is also supported:
+
+```sh
+python -m pip install ./mazegen-0.1.0-py3-none-any.whl
+```
+
+The wheel is usable on supported Python versions from 3.10 onwards. It contains
+only the reusable `mazegen` library and has no third-party runtime
+dependencies.
+
+This package is not the complete A-Maze-ing application. The wheel does not
+contain `a_maze_ing.py`, `config.txt`, the visualizer or MiniLibX. Therefore,
+installing only the wheel cannot start the full project. Keep the application
+source or distribute a separate application entry point to run the visual
+application.
 
 ## Usage
 

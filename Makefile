@@ -1,12 +1,15 @@
-.PHONY: install run debug clean lint lint-strict
+.PHONY: install run build debug clean lint lint-strict
 
-PYTHON ?= python3
+PYTHON ?= python
 
 install:
 	uv sync
 
 run:
 	uv run $(PYTHON) a_maze_ing.py config.txt
+
+build:
+	uv build --wheel -o .
 
 debug:
 	uv run $(PYTHON) -m pdb a_maze_ing.py config.txt
