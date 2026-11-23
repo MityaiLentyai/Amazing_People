@@ -16,6 +16,34 @@ class ConfigError(ValueError):
     """Raised when a maze configuration cannot be parsed safely."""
 
 
+def format_validation_error(error: ValidationError) -> str:
+    """Convert Pydantic validation details into short, readable messages."""
+    messages: list[str] = []
+
+    for detail in error.errors(
+        include_url=False,
+        include_context=False,
+        include_input=False,
+    ):
+        location = ".".join(str(part) for part in detail["loc"])
+        message = detail["msg"]
+
+        if message.startswith("Value error, "):
+            message = message.removeprefix("Value error, ")
+        elif message == "Field required":
+            message = "Missing required value"
+
+        if location:
+            formatted = f"{location}: {message}"
+        else:
+            formatted = message
+
+        if formatted not in messages:
+            messages.append(formatted)
+
+    return "; ".join(messages)
+
+
 class Config(BaseModel):
     """Validated A-Maze-ing configuration."""
 
@@ -123,7 +151,7 @@ def parse_input(config_name: str) -> Config:
             f"Not enough access rights to read {config_name}"
         ) from error
     except ValidationError as error:
-        raise ConfigError(str(error)) from error
+        raise ConfigError(format_validation_error(error)) from error
 
 
 if __name__ == "__main__":
