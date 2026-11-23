@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by bdubovik and tmalyshi.*
+*This project has been created as part of the 42 curriculum by bdubovik, tmalyshi.*
 
 # A-Maze-ing
 
@@ -104,6 +104,46 @@ The resulting `mazegen-*.whl` can be installed into another environment:
 ```sh
 python3 -m pip install mazegen-*.whl
 ```
+### Using the Makefile
+
+The project provides a Makefile to simplify installation, execution, debugging, and code quality checks. All commands should be executed from the root directory of the repository.
+
+| Command | Description |
+|---|---|
+| `make install` | Installs and synchronizes project dependencies using `uv sync`. |
+| `make run` | Runs A-Maze-ing using `config.txt` as the configuration file. |
+| `make debug` | Runs the application with Python's built-in debugger (`pdb`). |
+| `make lint` | Checks code style with `flake8` and performs type checking with `mypy`. |
+| `make lint-strict` | Performs stricter type checking using `mypy --strict` alongside `flake8`. |
+| `make clean` | Removes Python `__pycache__` directories and the `.mypy_cache` directory. |
+
+**Installation and execution:**
+
+```bash
+make install
+make run
+```
+
+**Debugging:**
+
+```bash
+make debug
+```
+
+**Code quality checks:**
+
+```bash
+make lint
+make lint-strict
+```
+
+**Cleaning generated cache files:**
+
+```bash
+make clean
+```
+
+The Makefile's `run` and `debug` targets use `config.txt` by default. To run the application with a different configuration file, use the direct execution command and provide the desired filename.
 
 ## Configuration file
 
