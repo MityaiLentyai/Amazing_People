@@ -2,6 +2,7 @@ import sys
 import time
 from collections.abc import Callable
 import ctypes
+from itertools import pairwise
 import os
 from typing import Any, Protocol
 
@@ -198,17 +199,9 @@ class MazeRenderer:
         self.algorithm_switch = algorithm_switch
         self.show_path = True
         self.wall_color_index = 0
-        self.cell_size = 50
         self.margin = 20
         self.controls_gap = 12
         self.footer_height = 112
-        self.control_y = (
-            self.margin + grid.height * self.cell_size + self.controls_gap
-        )
-        self.window_width = max(
-            grid.width * self.cell_size + 2 * self.margin, 280
-        )
-        self.window_height = self.control_y + self.footer_height
         self._set_generation(grid, self.path, generation_steps)
 
         self.mlx = mlx if mlx is not None else Mlx()
@@ -224,6 +217,7 @@ class MazeRenderer:
             raise RuntimeError("MiniLibX could not connect to a display")
 
         try:
+            self._fit_window(grid)
             self.win_ptr = self.mlx.mlx_new_window(
                 self.mlx_ptr,
                 self.window_width,
@@ -232,7 +226,8 @@ class MazeRenderer:
             )
             if not self.win_ptr:
                 raise RuntimeError("MiniLibX could not create a window")
-            self._enable_fixed_window_size()
+            if mlx is None:
+                self._enable_fixed_window_size()
 
             self.image = self.mlx.mlx_new_image(
                 self.mlx_ptr,
@@ -263,6 +258,37 @@ class MazeRenderer:
             self._cleanup(suppress_errors=True)
             raise
 
+    def _fit_window(self, grid: Grid) -> None:
+        """Fit the maze and controls in the available screen space."""
+        screen_width, screen_height = 1280, 800
+        get_screen_size = getattr(self.mlx, "mlx_get_screen_size", None)
+        if get_screen_size is not None:
+            try:
+                _, width, height = get_screen_size(self.mlx_ptr)
+                if width > 0 and height > 0:
+                    screen_width, screen_height = width, height
+            except (AttributeError, OSError):
+                pass
+
+        max_width = screen_width - 32
+        max_height = screen_height - 80
+        footer_space = self.margin + self.controls_gap + self.footer_height
+        self.cell_size = min(
+            50,
+            (max_width - 2 * self.margin - 1) // grid.width,
+            (max_height - footer_space) // grid.height,
+        )
+        if self.cell_size < 4 or max_width < 280:
+            raise RuntimeError("Maze is too large to display on this screen")
+
+        self.control_y = (
+            self.margin + grid.height * self.cell_size + self.controls_gap
+        )
+        self.window_width = max(
+            grid.width * self.cell_size + 2 * self.margin + 1, 280
+        )
+        self.window_height = self.control_y + self.footer_height
+
     @property
     def wall_color(self) -> int:
         return self.wall_colors[self.wall_color_index]
@@ -288,6 +314,7 @@ class MazeRenderer:
         self.path = path
         self.generation_steps = list(generation_steps or [])
         self.animation_index = 0
+        self._buffer_ready = False
         self.steps_per_frame = max(1, len(self.generation_steps) // 180)
         self.last_animation_time = 0.0
         if generation_steps is None or not self.generation_steps:
@@ -464,8 +491,8 @@ class MazeRenderer:
         path_label = "ON" if self.show_path else "OFF"
         status = f"ALGORITHM  {algorithm_label}     PATH  {path_label}"
         legend_title = "KEY LEGEND"
-        legend_top = "[1 / D] DFS    [2 / A] PRIM    [P] Path"
-        legend_bottom = "[C] Wall color    [R] New maze    [Q / Esc] Exit"
+        legend_top = "[1] DFS  [2] Prim  [P] Path"
+        legend_bottom = "[C] Colour  [R] New  [Q] Exit"
 
         self.mlx.mlx_string_put(
             self.mlx_ptr,
@@ -533,33 +560,6 @@ class MazeRenderer:
             offset = y * self.size_line + x0 * 4
             self.data[offset:offset + len(row)] = row
 
-    def _draw_line(self, x0: int, y0: int, x1: int, y1: int,
-                   color: int, thickness: int = 5) -> None:
-        dx = abs(x1 - x0)
-        sx = 1 if x0 < x1 else -1
-        dy = -abs(y1 - y0)
-        sy = 1 if y0 < y1 else -1
-        error = dx + dy
-        radius = thickness // 2
-
-        while True:
-            self._fill_rectangle(
-                x0 - radius,
-                y0 - radius,
-                x0 + radius + 1,
-                y0 + radius + 1,
-                color,
-            )
-            if x0 == x1 and y0 == y1:
-                break
-            twice_error = 2 * error
-            if twice_error >= dy:
-                error += dy
-                x0 += sx
-            if twice_error <= dx:
-                error += dx
-                y0 += sy
-
     def _fill_background(self) -> None:
         pixel = self._pixel_bytes(self.background_color)
         row = pixel * self.window_width
@@ -575,20 +575,27 @@ class MazeRenderer:
         ):
             return
 
-        centers = [
+        centers = (
             (
                 self.margin + point.x * self.cell_size + self.cell_size // 2,
                 self.margin + point.y * self.cell_size + self.cell_size // 2,
             )
             for point in self.path
-        ]
-        for (x0, y0), (x1, y1) in zip(centers, centers[1:]):
-            self._draw_line(x0, y0, x1, y1, self.path_color)
+        )
+        radius = min(2, (self.cell_size - 2) // 2)
+        for (x0, y0), (x1, y1) in pairwise(centers):
+            self._fill_rectangle(
+                min(x0, x1) - radius,
+                min(y0, y1) - radius,
+                max(x0, x1) + radius + 1,
+                max(y0, y1) + radius + 1,
+                self.path_color,
+            )
 
     def _draw_marker(self, point: Point, color: int) -> None:
         center_x = self.margin + point.x * self.cell_size + self.cell_size // 2
         center_y = self.margin + point.y * self.cell_size + self.cell_size // 2
-        radius = max(3, self.cell_size // 4)
+        radius = max(1, self.cell_size // 4)
         for dy in range(-radius, radius + 1):
             half_width = int((radius * radius - dy * dy) ** 0.5)
             self._fill_rectangle(
@@ -608,25 +615,26 @@ class MazeRenderer:
         self._fill_rectangle(x, y1, x + 1, y2 + 1, color)
 
     def draw_maze(self) -> None:
+        """Rebuild the image after a change affecting the whole maze."""
         self._fill_background()
 
+        inset = 1 if self.cell_size < 8 else 2
         for point in self.display_grid.reserved_cells:
-            x0 = self.margin + point.x * self.cell_size + 2
-            y0 = self.margin + point.y * self.cell_size + 2
+            x0 = self.margin + point.x * self.cell_size
+            y0 = self.margin + point.y * self.cell_size
             self._fill_rectangle(
-                x0,
-                y0,
-                x0 + self.cell_size - 4,
-                y0 + self.cell_size - 4,
+                x0 + inset,
+                y0 + inset,
+                x0 + self.cell_size - inset + 1,
+                y0 + self.cell_size - inset + 1,
                 self.reserved_color,
             )
 
         self._draw_path()
 
-        for y in range(self.display_grid.height):
-            for x in range(self.display_grid.width):
-                cell = self.display_grid.cells[y][x]
-
+        color = self.wall_color
+        for y, row in enumerate(self.display_grid.cells):
+            for x, cell in enumerate(row):
                 x0 = self.margin + x * self.cell_size
                 y0 = self.margin + y * self.cell_size
 
@@ -634,24 +642,65 @@ class MazeRenderer:
                 y1 = y0 + self.cell_size
 
                 if cell & Wall.NORTH:
-                    self.draw_horizontal(x0, x1, y0, self.wall_color)
+                    self.draw_horizontal(x0, x1, y0, color)
 
-                if cell & Wall.EAST:
-                    self.draw_vertical(x1, y0, y1, self.wall_color)
+                if x == self.display_grid.width - 1 and cell & Wall.EAST:
+                    self.draw_vertical(x1, y0, y1, color)
 
-                if cell & Wall.SOUTH:
-                    self.draw_horizontal(x0, x1, y1, self.wall_color)
+                if y == self.display_grid.height - 1 and cell & Wall.SOUTH:
+                    self.draw_horizontal(x0, x1, y1, color)
 
                 if cell & Wall.WEST:
-                    self.draw_vertical(x0, y0, y1, self.wall_color)
+                    self.draw_vertical(x0, y0, y1, color)
 
         self._draw_marker(self.display_grid.start, self.start_color)
         self._draw_marker(self.display_grid.end, self.end_color)
         self._draw_footer()
+        self._buffer_ready = True
+        self._present_image()
+
+    def _present_image(self) -> None:
+        """Display the current image and overlay the keyboard controls."""
         self.mlx.mlx_put_image_to_window(
             self.mlx_ptr, self.win_ptr, self.image, 0, 0
         )
         self._draw_footer_text()
+
+    def _erase_open_wall(self, first: Point, second: Point) -> None:
+        """Erase an opened wall and remove any newly empty junctions."""
+        x, y = max(first.x, second.x), max(first.y, second.y)
+        left = self.margin + x * self.cell_size
+        top = self.margin + y * self.cell_size
+        if first.x == second.x:
+            self.draw_horizontal(
+                left + 1, left + self.cell_size - 1, top,
+                self.background_color,
+            )
+            self._erase_empty_junction(x + 1, y)
+        else:
+            self.draw_vertical(
+                left, top + 1, top + self.cell_size - 1,
+                self.background_color,
+            )
+            self._erase_empty_junction(x, y + 1)
+        self._erase_empty_junction(x, y)
+
+    def _erase_empty_junction(self, x: int, y: int) -> None:
+        """Clear a wall endpoint only if none of its incident walls remain."""
+        grid = self.display_grid
+        if x in (0, grid.width) or y in (0, grid.height):
+            return  # The maze's outer wall always touches this junction.
+        cell = grid.cells[y][x]
+        if (
+            cell & (Wall.NORTH | Wall.WEST)
+            or grid.cells[y - 1][x] & Wall.WEST
+            or grid.cells[y][x - 1] & Wall.NORTH
+        ):
+            return
+        left = self.margin + x * self.cell_size
+        top = self.margin + y * self.cell_size
+        self._fill_rectangle(left, top, left + 1, top + 1,
+                             self.background_color)
 
     def toggle_path(self) -> None:
         self.show_path = not self.show_path
@@ -705,11 +754,19 @@ class MazeRenderer:
             len(self.generation_steps),
         )
         for point1, point2 in self.generation_steps[self.animation_index:stop]:
-            self.display_grid.open_passage(point1, point2)
+            if (
+                self.display_grid.open_passage(point1, point2)
+                and self._buffer_ready
+            ):
+                self._erase_open_wall(point1, point2)
         self.animation_index = stop
         if self.animation_complete:
             self.display_grid = self.grid
-        self.draw_maze()
+            self.draw_maze()
+        elif self._buffer_ready:
+            self._present_image()
+        else:
+            self.draw_maze()
         return True
 
     def animation_tick(self, _param: Any = None) -> int:
@@ -759,7 +816,10 @@ class MazeRenderer:
         self.mlx.mlx_loop_exit(self.mlx_ptr)
 
     def handle_expose(self, _param: Any = None) -> None:
-        self.draw_maze()
+        if self._buffer_ready:
+            self._present_image()
+        else:
+            self.draw_maze()
 
     def _cleanup(self, suppress_errors: bool = False) -> None:
         first_error = None
