@@ -1,14 +1,44 @@
 import sys
 import time
+import weakref
 from collections.abc import Callable
-import ctypes
 from itertools import pairwise
-import os
 from typing import Any, Protocol
 
 from mlx import Mlx
 from mazegen import ALGORITHMS, Grid, MazeGenerator, Point, Wall
 from src.file_output import parse_output
+
+
+# Each glyph stores seven rows of five bits, most significant bit first.
+FOOTER_GLYPHS = {
+    "A": (14, 17, 17, 31, 17, 17, 17),
+    "C": (14, 17, 16, 16, 16, 17, 14),
+    "D": (30, 17, 17, 17, 17, 17, 30),
+    "E": (31, 16, 16, 30, 16, 16, 31),
+    "F": (31, 16, 16, 30, 16, 16, 16),
+    "G": (14, 17, 16, 23, 17, 17, 15),
+    "H": (17, 17, 17, 31, 17, 17, 17),
+    "I": (14, 4, 4, 4, 4, 4, 14),
+    "K": (17, 18, 20, 24, 20, 18, 17),
+    "L": (16, 16, 16, 16, 16, 16, 31),
+    "M": (17, 27, 21, 21, 17, 17, 17),
+    "N": (17, 25, 21, 19, 17, 17, 17),
+    "O": (14, 17, 17, 17, 17, 17, 14),
+    "P": (30, 17, 17, 30, 16, 16, 16),
+    "Q": (14, 17, 17, 17, 21, 18, 13),
+    "R": (30, 17, 17, 30, 20, 18, 17),
+    "S": (15, 16, 16, 14, 1, 1, 30),
+    "T": (31, 4, 4, 4, 4, 4, 4),
+    "U": (17, 17, 17, 17, 17, 17, 14),
+    "W": (17, 17, 17, 21, 21, 27, 17),
+    "X": (17, 17, 10, 4, 10, 17, 17),
+    "Y": (17, 17, 10, 4, 4, 4, 4),
+    "1": (4, 12, 4, 4, 4, 4, 14),
+    "2": (14, 17, 1, 2, 4, 8, 31),
+    "[": (14, 8, 8, 8, 8, 8, 14),
+    "]": (14, 2, 2, 2, 2, 2, 14),
+}
 
 
 class MlxApi(Protocol):
@@ -33,17 +63,6 @@ class MlxApi(Protocol):
         image: Any,
         x: int,
         y: int,
-        /,
-    ) -> Any: ...
-
-    def mlx_string_put(
-        self,
-        mlx_ptr: Any,
-        win_ptr: Any,
-        x: int,
-        y: int,
-        color: int,
-        string: str,
         /,
     ) -> Any: ...
 
@@ -105,6 +124,8 @@ class MlxApi(Protocol):
 
 
 class MazeRenderer:
+    """Animate maze generation and draw the result in a MiniLibX window."""
+
     background_color = 0xFF09090B
     reserved_color = 0xFF3A1C52
     path_color = 0xFFE879F9
@@ -241,6 +262,8 @@ class MazeRenderer:
                 self.size_line,
                 self.endian,
             ) = self.mlx.mlx_get_data_addr(self.image)
+            # The view borrows native image memory. MLX supplies the
+            # row stride, which can include padding after the last pixel.
             if self.bpp != 32 or self.endian not in (0, 1):
                 raise RuntimeError(
                     f"Unsupported MiniLibX image format: "
@@ -319,6 +342,8 @@ class MazeRenderer:
             self.display_grid = grid
             self.animation_index = len(self.generation_steps)
         else:
+            # Replay passages on a separate grid so the solved maze stays
+            # intact while the animation is still showing closed walls.
             self.display_grid = self._create_animation_grid(grid)
 
     def _draw_footer(self) -> None:
@@ -331,53 +356,30 @@ class MazeRenderer:
         )
 
     def _draw_footer_text(self) -> None:
-        algorithm_label = self.algorithm.upper()
         path_label = "ON" if self.show_path else "OFF"
-        status = f"ALGORITHM  {algorithm_label}     PATH  {path_label}"
-        legend_title = "KEY LEGEND"
-        legend_top = "[1] DFS  [2] Prim  [P] Path"
-        legend_bottom = "[C] Colour  [R] New  [Q] Exit"
-
-        self.mlx.mlx_string_put(
-            self.mlx_ptr,
-            self.win_ptr,
-            self.margin,
-            self.control_y + 24,
+        self._draw_text(
+            f"ALGORITHM  {self.algorithm.upper()}     PATH  {path_label}",
+            self.control_y + 14,
             0xFFE879F9,
-            status,
         )
-        self.mlx.mlx_string_put(
-            self.mlx_ptr,
-            self.win_ptr,
-            self.margin,
-            self.control_y + 46,
-            0xFFF43F5E,
-            legend_title,
-        )
-        top_x = max(
-            self.margin,
-            (self.window_width - len(legend_top) * 7) // 2,
-        )
-        self.mlx.mlx_string_put(
-            self.mlx_ptr,
-            self.win_ptr,
-            top_x,
-            self.control_y + 68,
-            0xFFE6EDF3,
-            legend_top,
-        )
-        bottom_x = max(
-            self.margin,
-            (self.window_width - len(legend_bottom) * 7) // 2,
-        )
-        self.mlx.mlx_string_put(
-            self.mlx_ptr,
-            self.win_ptr,
-            bottom_x,
-            self.control_y + 92,
-            0xFFE6EDF3,
-            legend_bottom,
-        )
+        self._draw_text("KEY LEGEND", self.control_y + 37, 0xFFF43F5E)
+        self._draw_text("[1] DFS  [2] PRIM  [P] PATH", self.control_y + 60)
+        self._draw_text("[C] COLOUR  [R] NEW  [Q] EXIT", self.control_y + 84)
+
+    def _draw_text(self, text: str, y: int, color: int = 0xFFE6EDF3) -> None:
+        # MLX 2.2 leaves a stale native font pointer after mlx_release.
+        # Paint the footer into the same buffer as the maze.
+        advance = 9
+        x = (self.window_width - len(text) * advance) // 2
+        for char in text:
+            for row, bits in enumerate(FOOTER_GLYPHS.get(char, ())):
+                for col in range(5):
+                    if bits & (16 >> col):
+                        top = y + row * 2
+                        self._fill_rectangle(
+                            x + col, top, x + col + 1, top + 2, color
+                        )
+            x += advance
 
     def _pixel_bytes(self, color: int) -> bytes:
         alpha = (color >> 24) & 0xFF
@@ -500,15 +502,15 @@ class MazeRenderer:
         self._draw_marker(self.display_grid.start, self.start_color)
         self._draw_marker(self.display_grid.end, self.end_color)
         self._draw_footer()
+        self._draw_footer_text()
         self._buffer_ready = True
         self._present_image()
 
     def _present_image(self) -> None:
-        """Display the current image and overlay the keyboard controls."""
+        """Blit the completed framebuffer to the window."""
         self.mlx.mlx_put_image_to_window(
             self.mlx_ptr, self.win_ptr, self.image, 0, 0
         )
-        self._draw_footer_text()
 
     def _erase_open_wall(self, first: Point, second: Point) -> None:
         """Erase an opened wall and remove any newly empty junctions."""
@@ -614,7 +616,10 @@ class MazeRenderer:
         return True
 
     def animation_tick(self, _param: Any = None) -> int:
-        self.advance_animation()
+        if self.animation_complete:
+            time.sleep(0.01)
+        else:
+            self.advance_animation()
         return 0
 
     def handle_key(
@@ -657,6 +662,7 @@ class MazeRenderer:
             self.select_algorithm(next_algorithm)
 
     def close_window(self, _param: Any = None) -> None:
+        # Let MLX finish dispatching this event before freeing its resources.
         self.mlx.mlx_loop_exit(self.mlx_ptr)
 
     def handle_expose(self, _param: Any = None) -> None:
@@ -667,8 +673,9 @@ class MazeRenderer:
 
     def _cleanup(self, suppress_errors: bool = False) -> None:
         first_error = None
-        if self.image is not None:
+        if self.image:
             try:
+                self.data.release()
                 self.mlx.mlx_destroy_image(self.mlx_ptr, self.image)
             except Exception as error:
                 if first_error is None:
@@ -676,7 +683,7 @@ class MazeRenderer:
             finally:
                 self.image = None
                 self.data = memoryview(b"")
-        if self.win_ptr is not None:
+        if self.win_ptr:
             try:
                 self.mlx.mlx_destroy_window(
                     self.mlx_ptr,
@@ -700,15 +707,27 @@ class MazeRenderer:
             raise first_error
 
     def run(self) -> None:
+        # MLX keeps callback objects after teardown. Capture a weak proxy
+        # so a reused MLX wrapper cannot retain this renderer and its grids.
+        renderer = weakref.proxy(self)
         try:
             self.draw_maze()
-            self.mlx.mlx_key_hook(self.win_ptr, self.handle_key, None)
-            self.mlx.mlx_expose_hook(self.win_ptr, self.handle_expose, None)
+            self.mlx.mlx_key_hook(
+                self.win_ptr, lambda key, param: renderer.handle_key(
+                    key, param
+                ), None
+            )
+            self.mlx.mlx_expose_hook(
+                self.win_ptr, lambda param: renderer.handle_expose(param),
+                None
+            )
             self.mlx.mlx_loop_hook(
-                self.mlx_ptr, self.animation_tick, None
+                self.mlx_ptr, lambda param: renderer.animation_tick(param),
+                None
             )
             self.mlx.mlx_hook(
-                self.win_ptr, 33, 0, self.close_window, None
+                self.win_ptr, 33, 0,
+                lambda param: renderer.close_window(param), None
             )
             self.mlx.mlx_loop(self.mlx_ptr)
         finally:
